@@ -988,7 +988,7 @@ function scheduleReminders() {
     const delay = notifTime - now;
     if (delay > 0) {
       setTimeout(() => {
-        new Notification(label, { body, icon: '/favicon.ico' });
+        new Notification(label, { body, icon: 'favicon.png' });
       }, delay);
     }
   });
