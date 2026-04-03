@@ -1,0 +1,13 @@
+{
+  "name": "everyday",
+  "version": "1.0.0",
+  "description": "EveryDay — Personal discipline, progression, and execution tracking system",
+  "private": true,
+  "scripts": {
+    "dev": "npx serve . -p 3000 --no-clipboard",
+    "start": "npx serve . -p 3000"
+  },
+  "keywords": ["discipline", "productivity", "tracker", "progression"],
+  "author": "Thrishank Kuntimaddi",
+  "license": "MIT"
+}

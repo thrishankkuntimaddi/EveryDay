@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="EveryDay — Your personal discipline, progression, and execution tracking system. Build identity through consistency." />
+  <title>EveryDay — Discipline. Progression. Execution.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ========================
+       NAVIGATION / HEADER
+  ======================== -->
+  <header class="app-header" id="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </div>
+        <span class="brand-name">EveryDay</span>
+      </div>
+
+      <!-- Tabs -->
+      <nav class="nav-tabs" role="navigation" aria-label="Main navigation">
+        <button class="nav-tab active" data-view="dashboard" id="tab-dashboard">Dashboard</button>
+        <button class="nav-tab" data-view="history" id="tab-history">History</button>
+        <button class="nav-tab" data-view="progression" id="tab-progression">Progression</button>
+        <button class="nav-tab" data-view="settings" id="tab-settings">Settings</button>
+      </nav>
+
+      <!-- Header right actions -->
+      <div class="header-actions">
+        <div class="streak-badge" id="header-streak" title="Current streak">
+          <span class="flame">🔥</span>
+          <span class="streak-count" id="streak-count-header">0</span>
+        </div>
+        <div class="phase-badge" id="phase-badge-header">Stabilization</div>
+        <button class="icon-btn" id="focus-mode-toggle" title="Focus Mode" aria-label="Toggle Focus Mode">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+          </svg>
+        </button>
+        <button class="icon-btn" id="notify-btn" title="Enable Notifications" aria-label="Enable Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================
+       FOCUS MODE OVERLAY
+  ======================== -->
+  <div class="focus-overlay" id="focus-overlay" hidden>
+    <div class="focus-content">
+      <div class="focus-header">
+        <h2 class="focus-block-title" id="focus-block-title">Morning Block</h2>
+        <button class="focus-exit-btn" id="focus-exit-btn" aria-label="Exit Focus Mode">Exit Focus</button>
+      </div>
+      <div class="focus-tasks" id="focus-tasks"></div>
+      <div class="focus-timer-wrapper">
+        <div class="focus-timer" id="focus-timer">25:00</div>
+        <div class="focus-timer-controls">
+          <button class="timer-btn" id="timer-start" aria-label="Start Timer">▶ Start</button>
+          <button class="timer-btn secondary" id="timer-reset" aria-label="Reset Timer">↺ Reset</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================
+       MAIN APP CONTENT
+  ======================== -->
+  <main class="app-main" id="app-main">
+
+    <!-- ======= DASHBOARD VIEW ======= -->
+    <div class="view active" id="view-dashboard">
+
+      <!-- Top metrics bar -->
+      <div class="metrics-bar">
+        <div class="metric-card" id="metric-today">
+          <div class="metric-icon">📅</div>
+          <div class="metric-body">
+            <div class="metric-label">Today</div>
+            <div class="metric-value" id="today-date">—</div>
+          </div>
+        </div>
+        <div class="metric-card" id="metric-streak">
+          <div class="metric-icon">🔥</div>
+          <div class="metric-body">
+            <div class="metric-label">Streak</div>
+            <div class="metric-value" id="streak-value">0 days</div>
+          </div>
+        </div>
+        <div class="metric-card" id="metric-progress">
+          <div class="metric-icon">⚡</div>
+          <div class="metric-body">
+            <div class="metric-label">Daily Progress</div>
+            <div class="metric-value" id="overall-progress-val">0%</div>
+          </div>
+        </div>
+        <div class="metric-card" id="metric-phase">
+          <div class="metric-icon">🧬</div>
+          <div class="metric-body">
+            <div class="metric-label">Phase</div>
+            <div class="metric-value phase-text" id="phase-display">Stabilization</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Overall daily progress bar -->
+      <div class="master-progress-wrapper">
+        <div class="master-progress-info">
+          <span>Today's Execution</span>
+          <span id="master-progress-label">0 / 0 tasks</span>
+        </div>
+        <div class="master-progress-track">
+          <div class="master-progress-fill" id="master-progress-fill" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- Minimum Mode Toggle -->
+      <div class="min-mode-bar">
+        <div class="min-mode-info">
+          <span class="min-mode-title">Minimum Mode</span>
+          <span class="min-mode-desc">Bad day? Activate to show only essential tasks.</span>
+        </div>
+        <label class="toggle-switch" for="min-mode-toggle" aria-label="Minimum Mode">
+          <input type="checkbox" id="min-mode-toggle" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- BLOCKS GRID -->
+      <div class="blocks-grid" id="blocks-grid">
+        <!-- Dynamically rendered by JS -->
+      </div>
+
+      <!-- END OF DAY CHECK-IN -->
+      <div class="eod-card" id="eod-card">
+        <div class="eod-header">
+          <div class="eod-title">
+            <span class="eod-icon">🌙</span>
+            <h3>End of Day Reflection</h3>
+          </div>
+          <div class="eod-submitted-badge" id="eod-submitted-badge" hidden>✓ Submitted</div>
+        </div>
+        <div class="eod-body" id="eod-body">
+          <div class="eod-field">
+            <label class="eod-label">Did you show up today?</label>
+            <div class="eod-options" id="eod-showed-up">
+              <button class="eod-option" data-val="yes" id="eod-yes">✅ Yes, I showed up</button>
+              <button class="eod-option" data-val="no" id="eod-no">❌ No, I didn't</button>
+            </div>
+          </div>
+          <div class="eod-field">
+            <label class="eod-label">Effort level today (1–5)</label>
+            <div class="effort-stars" id="effort-stars" role="group" aria-label="Effort rating">
+              <button class="star-btn" data-val="1" aria-label="1 star">★</button>
+              <button class="star-btn" data-val="2" aria-label="2 stars">★</button>
+              <button class="star-btn" data-val="3" aria-label="3 stars">★</button>
+              <button class="star-btn" data-val="4" aria-label="4 stars">★</button>
+              <button class="star-btn" data-val="5" aria-label="5 stars">★</button>
+            </div>
+          </div>
+          <div class="eod-field">
+            <label class="eod-label" for="eod-notes">Reflection notes</label>
+            <textarea class="eod-textarea" id="eod-notes" placeholder="What went well? What can improve? Any insight about today..." rows="3"></textarea>
+          </div>
+          <button class="eod-submit-btn" id="eod-submit">Save Reflection</button>
+        </div>
+      </div>
+
+    </div><!-- /view-dashboard -->
+
+    <!-- ======= HISTORY VIEW ======= -->
+    <div class="view" id="view-history">
+      <div class="view-header">
+        <h2 class="view-title">Execution History</h2>
+        <p class="view-sub">Every day you showed up is recorded here.</p>
+      </div>
+      <div class="history-grid" id="history-grid">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="history-empty" id="history-empty" hidden>
+        <div class="empty-icon">📭</div>
+        <p>No history yet. Complete your first day and submit a reflection.</p>
+      </div>
+    </div><!-- /view-history -->
+
+    <!-- ======= PROGRESSION VIEW ======= -->
+    <div class="view" id="view-progression">
+      <div class="view-header">
+        <h2 class="view-title">Growth Phases</h2>
+        <p class="view-sub">You evolve through phases — not timetables.</p>
+      </div>
+
+      <div class="phase-selector-grid" id="phase-selector-grid">
+        <!-- Rendered by JS -->
+      </div>
+
+      <div class="phase-detail-card" id="phase-detail-card">
+        <!-- Rendered by JS -->
+      </div>
+
+      <!-- Weekly heatmap -->
+      <div class="heatmap-section">
+        <h3 class="section-title">30-Day Activity</h3>
+        <div class="heatmap-grid" id="heatmap-grid"></div>
+        <div class="heatmap-legend">
+          <span class="legend-item"><span class="legend-dot empty"></span>None</span>
+          <span class="legend-item"><span class="legend-dot low"></span>Low</span>
+          <span class="legend-item"><span class="legend-dot mid"></span>Mid</span>
+          <span class="legend-item"><span class="legend-dot high"></span>High</span>
+        </div>
+      </div>
+
+    </div><!-- /view-progression -->
+
+    <!-- ======= SETTINGS VIEW ======= -->
+    <div class="view" id="view-settings">
+      <div class="view-header">
+        <h2 class="view-title">Settings</h2>
+        <p class="view-sub">Customize your execution system.</p>
+      </div>
+
+      <div class="settings-grid">
+
+        <div class="settings-card">
+          <h3 class="settings-card-title">Identity</h3>
+          <div class="settings-field">
+            <label for="user-name">Your name</label>
+            <input type="text" id="user-name" placeholder="e.g. Thrishank" class="settings-input" />
+          </div>
+          <div class="settings-field">
+            <label for="user-goal">Core goal / identity statement</label>
+            <input type="text" id="user-goal" placeholder="e.g. I am becoming disciplined every day" class="settings-input" />
+          </div>
+          <button class="settings-save-btn" id="save-identity">Save Identity</button>
+        </div>
+
+        <div class="settings-card">
+          <h3 class="settings-card-title">Reminders</h3>
+          <div class="reminder-list" id="reminder-list">
+            <div class="reminder-item">
+              <label>🌅 Morning Start</label>
+              <input type="time" id="remind-morning" value="06:00" class="time-input" />
+            </div>
+            <div class="reminder-item">
+              <label>💼 Work Block 1</label>
+              <input type="time" id="remind-work1" value="09:00" class="time-input" />
+            </div>
+            <div class="reminder-item">
+              <label>🌆 Evening Block</label>
+              <input type="time" id="remind-evening" value="18:00" class="time-input" />
+            </div>
+            <div class="reminder-item">
+              <label>🌙 Night Reflection</label>
+              <input type="time" id="remind-night" value="22:00" class="time-input" />
+            </div>
+          </div>
+          <button class="settings-save-btn" id="save-reminders">Save Reminders</button>
+        </div>
+
+        <div class="settings-card danger-zone">
+          <h3 class="settings-card-title">Data</h3>
+          <p class="settings-desc">All your data is stored locally in your browser. Export or clear it here.</p>
+          <div class="data-actions">
+            <button class="settings-export-btn" id="export-data">📤 Export Data</button>
+            <button class="settings-danger-btn" id="reset-data">🗑 Reset All Data</button>
+          </div>
+        </div>
+
+      </div>
+
+    </div><!-- /view-settings -->
+
+  </main>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
