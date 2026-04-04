@@ -66,11 +66,32 @@ export function getBlockStatus(block) {
   return 'past';
 }
 
-/** True if tasks in this block can be checked right now */
+/** True if tasks in this block can be checked/unchecked right now.
+ *
+ * Marking window = from block END time → next block's START time.
+ * - During the block (active): LOCKED (you're executing, not reflecting)
+ * - After block ends, before next block starts: OPEN (brief reflection window)
+ * - After next block starts (or no next block + past EOD cutoff): LOCKED
+ */
 export function isBlockMarkable(block) {
-  const status = getBlockStatus(block);
-  // Tasks are markable when block is active (in progress) or past (ended)
-  return status === 'active' || status === 'past';
+  const { endMin } = getBlockRange(block);
+  const now = nowMinutes();
+
+  // Must be past end time first
+  if (now < endMin) return false;
+
+  // Find this block's index in BLOCKS
+  const idx = BLOCKS.findIndex(b => b.id === block.id);
+  const nextBlock = BLOCKS[idx + 1];
+
+  if (nextBlock) {
+    // Open until the next block's start time
+    const { startMin: nextStart } = getBlockRange(nextBlock);
+    return now < nextStart;
+  }
+
+  // Last block of the day: open until midnight (1440 min) or EOD lock is handled separately
+  return now < 1440;
 }
 
 // ── Countdown formatting ──────────────────────────────────────────────────────
@@ -101,11 +122,9 @@ export function stopBlockCountdowns() {
 }
 
 function _tick() {
-  const now = nowMinutes();
-
   BLOCKS.forEach(block => {
-    const { startMin, endMin } = getBlockRange(block);
-    const status = getBlockStatus(block);
+    const status   = getBlockStatus(block);
+    const markable = isBlockMarkable(block);
 
     // Update countdown element
     const cdEl = document.getElementById(`block-cd-${block.id}`);
@@ -118,14 +137,18 @@ function _tick() {
         const secsLeft = secondsUntilBlockEnd(block);
         cdEl.textContent = `${formatCountdown(secsLeft)} left`;
         cdEl.className = 'block-countdown countdown-active';
-      } else {
-        cdEl.textContent = 'Completed';
+      } else if (markable) {
+        // Past block — still in the reflection window
+        cdEl.textContent = 'Reflect now ✎';
         cdEl.className = 'block-countdown countdown-done';
+      } else {
+        // Past block — reflection window closed, permanently locked
+        cdEl.textContent = 'Locked 🔒';
+        cdEl.className = 'block-countdown countdown-locked';
       }
     }
 
     // Update lock state on task items
-    const markable = isBlockMarkable(block);
     block.tasks.forEach(task => {
       const taskEl = document.getElementById(`task-${task.id}`);
       if (!taskEl) return;
@@ -141,8 +164,12 @@ function _tick() {
     // Update block card status class
     const card = document.getElementById(`block-card-${block.id}`);
     if (card) {
-      card.classList.remove('block-status-upcoming', 'block-status-active', 'block-status-past');
-      card.classList.add(`block-status-${status}`);
+      card.classList.remove('block-status-upcoming', 'block-status-active', 'block-status-past', 'block-status-locked');
+      if (status === 'past' && !markable) {
+        card.classList.add('block-status-locked');
+      } else {
+        card.classList.add(`block-status-${status}`);
+      }
     }
   });
 }

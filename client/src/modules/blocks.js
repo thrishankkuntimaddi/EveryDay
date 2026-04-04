@@ -345,12 +345,25 @@ export async function toggleTask(taskId) {
     b.tasks.some(t => t.id === taskId || (t.subTasks && t.subTasks.some(st => st.id === taskId)))
   );
 
-  // Check time-lock
+  // Check time-lock — provide specific reason
   if (block && !isBlockMarkable(block)) {
-    const { endMin } = getBlockRange(block);
-    const h = Math.floor(endMin / 60).toString().padStart(2, '0');
-    const m = (endMin % 60).toString().padStart(2, '0');
-    showToast(`🔒 Tasks unlock after ${h}:${m}`, 'error');
+    const blockStatus = getBlockStatus(block);
+    if (blockStatus === 'upcoming') {
+      const { startMin } = getBlockRange(block);
+      const h = Math.floor(startMin / 60) % 12 || 12;
+      const m = (startMin % 60).toString().padStart(2, '0');
+      const p = startMin < 720 ? 'AM' : 'PM';
+      showToast(`🔒 Block hasn't started yet. Begins at ${h}:${m} ${p}`, 'error');
+    } else if (blockStatus === 'active') {
+      const { endMin } = getBlockRange(block);
+      const h = Math.floor(endMin / 60) % 12 || 12;
+      const m = (endMin % 60).toString().padStart(2, '0');
+      const p = endMin < 720 ? 'AM' : 'PM';
+      showToast(`⏳ Block in progress — reflect & mark after ${h}:${m} ${p}`, 'error');
+    } else {
+      // past but reflection window closed (next block started)
+      showToast('🔒 Reflection window closed. This block is permanently locked.', 'error');
+    }
     return;
   }
 
