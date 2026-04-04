@@ -35,13 +35,17 @@ export function openFocusMode(blockId) {
   }).join('');
 
   tasksEl.querySelectorAll('.task-item').forEach(item => {
-    item.addEventListener('click', async () => {
+    const handleToggle = async () => {
       await toggleTask(item.dataset.task);
       const focusItem = document.getElementById(`focus-task-${item.dataset.task}`);
       if (focusItem) {
         focusItem.classList.toggle('done', !!STATE.tasks[item.dataset.task]);
         focusItem.setAttribute('aria-checked', !!STATE.tasks[item.dataset.task]);
       }
+    };
+    item.addEventListener('click', handleToggle);
+    item.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleToggle(); }
     });
   });
 

@@ -44,12 +44,15 @@ import { requestNotifications, scheduleReminders } from './modules/notifications
 function switchView(viewId) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
 
-  const view = document.getElementById(`view-${viewId}`);
-  const tab  = document.getElementById(`tab-${viewId}`);
+  const view    = document.getElementById(`view-${viewId}`);
+  const tab     = document.getElementById(`tab-${viewId}`);
+  const mobTab  = document.getElementById(`mob-tab-${viewId}`);
 
-  if (view) view.classList.add('active');
-  if (tab)  tab.classList.add('active');
+  if (view)   view.classList.add('active');
+  if (tab)    tab.classList.add('active');
+  if (mobTab) mobTab.classList.add('active');
 
   STATE.currentView = viewId;
 
@@ -61,9 +64,14 @@ function switchView(viewId) {
 // ── Global Event Listeners ────────────────────────────────────────────────────
 
 function attachGlobalListeners() {
-  // Nav tabs
+  // Nav tabs (desktop)
   document.querySelectorAll('.nav-tab').forEach(tab => {
     tab.addEventListener('click', () => switchView(tab.dataset.view));
+  });
+
+  // Nav buttons (mobile bottom bar)
+  document.querySelectorAll('.mobile-nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchView(btn.dataset.view));
   });
 
   // Focus mode toggle (header button)
@@ -203,6 +211,10 @@ async function boot() {
   updateHeaderStreak();
   updatePhaseBadge();
   renderEOD();
+
+  // Sync toggle UI to match state (minimumMode defaults false, but be explicit)
+  const minToggle = document.getElementById('min-mode-toggle');
+  if (minToggle) minToggle.checked = STATE.minimumMode;
 
   // 5. Attach all listeners
   attachGlobalListeners();

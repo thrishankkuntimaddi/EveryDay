@@ -49,6 +49,40 @@
           <span class="streak-count" id="streak-count-header">0</span>
         </div>
         <div class="phase-badge" id="phase-badge-header">Stabilization</div>
+
+        <!-- Minimum Mode compact toggle -->
+        <div class="header-min-mode" title="Bad day? Show only essential tasks.">
+          <span class="header-min-label">Min Mode</span>
+          <label class="toggle-switch" for="min-mode-toggle" aria-label="Minimum Mode">
+            <input type="checkbox" id="min-mode-toggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- Edit Plan + inline save/cancel -->
+        <button class="header-edit-plan-btn" id="edit-plan-btn" aria-label="Edit your day plan">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Edit Plan
+        </button>
+        <div class="inline-edit-actions hidden" id="inline-edit-actions">
+          <span class="inline-edit-label">Editing…</span>
+          <button class="inline-cancel-btn" id="inline-cancel-btn" aria-label="Cancel editing">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            Cancel
+          </button>
+          <button class="inline-save-btn" id="inline-save-btn" aria-label="Save plan">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Save
+          </button>
+        </div>
+
         <button class="icon-btn" id="focus-mode-toggle" title="Focus Mode" aria-label="Toggle Focus Mode">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
@@ -91,6 +125,7 @@
     <!-- ======= DASHBOARD VIEW ======= -->
     <div class="view active" id="view-dashboard">
 
+      <!-- Metrics bar: date, streak, phase + execution ring -->
       <div class="metrics-bar">
         <div class="metric-card" id="metric-today">
           <div class="metric-icon">📅</div>
@@ -106,13 +141,6 @@
             <div class="metric-value" id="streak-value">0 days</div>
           </div>
         </div>
-        <div class="metric-card" id="metric-progress">
-          <div class="metric-icon">⚡</div>
-          <div class="metric-body">
-            <div class="metric-label">Daily Progress</div>
-            <div class="metric-value" id="overall-progress-val">0%</div>
-          </div>
-        </div>
         <div class="metric-card" id="metric-phase">
           <div class="metric-icon">🧬</div>
           <div class="metric-body">
@@ -120,51 +148,27 @@
             <div class="metric-value phase-text" id="phase-display">Stabilization</div>
           </div>
         </div>
-      </div>
 
-      <div class="master-progress-wrapper">
-        <div class="master-progress-info">
-          <span>Today's Execution</span>
-          <span id="master-progress-label">0 / 0 tasks</span>
-        </div>
-        <div class="master-progress-track">
-          <div class="master-progress-fill" id="master-progress-fill" style="width: 0%"></div>
-        </div>
-      </div>
-
-      <div class="min-mode-bar">
-        <div class="min-mode-info">
-          <span class="min-mode-title">Minimum Mode</span>
-          <span class="min-mode-desc">Bad day? Activate to show only essential tasks.</span>
-        </div>
-        <label class="toggle-switch" for="min-mode-toggle" aria-label="Minimum Mode">
-          <input type="checkbox" id="min-mode-toggle" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-
-      <div class="dashboard-toolbar">
-        <button class="edit-plan-btn" id="edit-plan-btn" aria-label="Edit your day plan">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-          </svg>
-          Edit Plan
-        </button>
-        <div class="inline-edit-actions hidden" id="inline-edit-actions">
-          <span class="inline-edit-label">Editing plan…</span>
-          <button class="inline-cancel-btn" id="inline-cancel-btn" aria-label="Cancel editing">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        <div class="metric-card execution-ring-card" id="metric-execution">
+          <div class="execution-ring-container">
+            <svg class="execution-ring-svg" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+              <defs>
+                <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#7c3aed"/>
+                  <stop offset="100%" stop-color="#06b6d4"/>
+                </linearGradient>
+              </defs>
+              <circle class="ring-bg" cx="32" cy="32" r="26"/>
+              <circle class="ring-progress" id="master-ring-fill" cx="32" cy="32" r="26"
+                stroke-dasharray="163.36" stroke-dashoffset="163.36"
+                transform="rotate(-90 32 32)"/>
             </svg>
-            Cancel
-          </button>
-          <button class="inline-save-btn" id="inline-save-btn" aria-label="Save plan">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polyline points="20 6 9 17 4 12"/>
-            </svg>
-            Save Plan
-          </button>
+            <div class="execution-ring-pct" id="overall-progress-val">0%</div>
+          </div>
+          <div class="metric-body">
+            <div class="metric-label">Today's Execution</div>
+            <div class="metric-value" id="master-progress-label">0 / 0 tasks</div>
+          </div>
         </div>
       </div>
 
@@ -180,6 +184,8 @@
           </div>
           <div class="eod-submitted-badge" id="eod-submitted-badge" hidden>✓ Submitted</div>
         </div>
+        <!-- Lock overlay — shown until EOD is unlocked -->
+        <div class="eod-lock-overlay" id="eod-lock-overlay" hidden></div>
         <div class="eod-body" id="eod-body">
           <div class="eod-field">
             <label class="eod-label">Did you show up today?</label>
@@ -290,6 +296,36 @@
     </div><!-- /view-settings -->
 
   </main>
+
+  <!-- Mobile bottom navigation (visible only on ≤640px) -->
+  <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation">
+    <button class="mobile-nav-btn active" data-view="dashboard" id="mob-tab-dashboard" aria-label="Dashboard">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      <span>Dashboard</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="history" id="mob-tab-history" aria-label="History">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <span>History</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="progression" id="mob-tab-progression" aria-label="Progression">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+      </svg>
+      <span>Growth</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="settings" id="mob-tab-settings" aria-label="Settings">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+      <span>Settings</span>
+    </button>
+  </nav>
 
   <!-- Toast notification -->
   <div class="toast" id="toast" aria-live="polite"></div>

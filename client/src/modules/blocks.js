@@ -217,13 +217,36 @@ export function updateBlockProgress(block) {
 export function updateMasterProgress() {
   const { total, done, pct } = getOverallProgress();
 
-  const fill  = document.getElementById('master-progress-fill');
-  const label = document.getElementById('master-progress-label');
-  const valEl = document.getElementById('overall-progress-val');
+  // Flat bar (kept for backward-compat, element may not exist)
+  const fill = document.getElementById('master-progress-fill');
+  if (fill) fill.style.width = `${pct}%`;
 
-  if (fill)  fill.style.width = `${pct}%`;
+  // Task count label
+  const label = document.getElementById('master-progress-label');
   if (label) label.textContent = `${done} / ${total} tasks`;
+
+  // Percentage text in ring
+  const valEl = document.getElementById('overall-progress-val');
   if (valEl) valEl.textContent = `${pct}%`;
+
+  // Circular ring: circumference = 2π × r(26) ≈ 163.36
+  const CIRCUMFERENCE = 163.36;
+  const ring = document.getElementById('master-ring-fill');
+  if (ring) {
+    const offset = CIRCUMFERENCE * (1 - pct / 100);
+    ring.style.strokeDashoffset = offset;
+
+    if (pct === 100) {
+      ring.style.filter = 'drop-shadow(0 0 10px rgba(16,185,129,0.8))';
+      ring.setAttribute('stroke', '#10b981');
+    } else {
+      ring.style.filter = 'drop-shadow(0 0 6px rgba(124,58,237,0.6))';
+      ring.setAttribute('stroke', 'url(#ringGradient)');
+    }
+  }
+
+  // Notify EOD module so it can re-evaluate its unlock state (no circular import)
+  window.dispatchEvent(new CustomEvent('everyday:progress', { detail: { pct } }));
 }
 
 export function applyMinimumMode() {

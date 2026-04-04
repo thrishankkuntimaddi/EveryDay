@@ -221,7 +221,15 @@ const settings = {
       return request('/settings', { method: 'PATCH', body: JSON.stringify(partial) });
     }
     const current = lsGet(LS_KEYS.settings, { name: '', goal: '', reminders: {} });
-    const updated = { ...current, ...partial };
+    // Deep-merge: nested objects (like reminders) are merged, not replaced
+    const updated = { ...current };
+    for (const [k, v] of Object.entries(partial)) {
+      if (v !== null && typeof v === 'object' && !Array.isArray(v) && typeof current[k] === 'object') {
+        updated[k] = { ...current[k], ...v };
+      } else {
+        updated[k] = v;
+      }
+    }
     lsSet(LS_KEYS.settings, updated);
     return updated;
   },

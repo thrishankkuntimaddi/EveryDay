@@ -96,7 +96,7 @@ body {
   height: 64px;
   display: flex;
   align-items: center;
-  gap: 32px;
+  gap: 16px;
 }
 
 .brand {
@@ -172,8 +172,57 @@ body {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Compact Min Mode in header */
+.header-min-mode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(245, 158, 11, 0.07);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 20px;
+  padding: 5px 12px 5px 10px;
+  cursor: default;
+  transition: border-color var(--transition);
+}
+
+.header-min-mode:hover { border-color: rgba(245, 158, 11, 0.4); }
+
+.header-min-label {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--accent-amber);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Edit Plan button in header */
+.header-edit-plan-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(124, 58, 237, 0.12);
+  border: 1px solid rgba(124, 58, 237, 0.3);
+  color: var(--accent-violet-light);
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.header-edit-plan-btn:hover {
+  background: rgba(124, 58, 237, 0.22);
+  border-color: var(--accent-violet);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124,58,237,0.25);
 }
 
 .streak-badge {
@@ -261,7 +310,7 @@ body {
 ══════════════════════════════════════ */
 .metrics-bar {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr) 1.4fr;
   gap: 12px;
   margin-bottom: 20px;
 }
@@ -297,6 +346,53 @@ body {
 }
 
 .phase-text { color: var(--accent-purple, var(--accent-violet-light)); }
+
+/* Execution ring card */
+.execution-ring-card {
+  background: linear-gradient(135deg, rgba(124,58,237,0.08), rgba(6,182,212,0.05));
+  border-color: rgba(124,58,237,0.2);
+  gap: 16px;
+}
+
+.execution-ring-card:hover { border-color: rgba(124,58,237,0.4); }
+
+.execution-ring-container {
+  position: relative;
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.execution-ring-svg { position: absolute; inset: 0; }
+
+.ring-bg {
+  fill: none;
+  stroke: rgba(255,255,255,0.06);
+  stroke-width: 5;
+}
+
+.ring-progress {
+  fill: none;
+  stroke: url(#ringGradient);
+  stroke-width: 5;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 6px rgba(124,58,237,0.6));
+}
+
+.execution-ring-pct {
+  position: relative;
+  z-index: 1;
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent-violet-light);
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 10px rgba(124,58,237,0.5);
+}
 
 /* ══════════════════════════════════════
    MASTER PROGRESS
@@ -1347,10 +1443,71 @@ body {
     bottom: 0; left: 0; right: 0;
     background: rgba(8,8,16,0.95);
     backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid var(--border);
-    padding: 8px 0 16px;
+    padding: 6px 0 env(safe-area-inset-bottom, 8px);
     z-index: 90;
     justify-content: space-around;
+    align-items: stretch;
+  }
+}
+
+.mobile-nav-btn {
+  display: none; /* hidden on desktop */
+}
+
+@media (max-width: 640px) {
+  .mobile-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    padding: 8px 4px;
+    cursor: pointer;
+    transition: color var(--transition);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    position: relative;
+  }
+
+  .mobile-nav-btn span {
+    line-height: 1;
+  }
+
+  .mobile-nav-btn svg {
+    transition: transform var(--transition);
+  }
+
+  .mobile-nav-btn:hover {
+    color: var(--text-secondary);
+  }
+
+  .mobile-nav-btn.active {
+    color: var(--accent-violet-light);
+  }
+
+  .mobile-nav-btn.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
+    border-radius: 0 0 3px 3px;
+  }
+
+  .mobile-nav-btn.active svg {
+    transform: translateY(-1px);
+    filter: drop-shadow(0 0 5px rgba(124,58,237,0.5));
   }
 }
 
@@ -2044,3 +2201,147 @@ body {
   .reminder-controls { width: 100%; justify-content: flex-end; }
 }
 
+/* ══════════════════════════════════════
+   EOD — LOCK OVERLAY
+══════════════════════════════════════ */
+.eod-lock-overlay {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 28px 24px;
+  background: rgba(8,8,16,0.4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.eod-lock-overlay[hidden] { display: none !important; }
+
+.eod-lock-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+  opacity: 0.6;
+  animation: lockPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes lockPulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50%       { transform: scale(1.08); opacity: 0.85; }
+}
+
+.eod-lock-content { flex: 1; }
+
+.eod-lock-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.eod-lock-caption {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.eod-lock-track-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.eod-lock-track {
+  flex: 1;
+  height: 5px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 3px;
+  position: relative;
+  overflow: visible;
+}
+
+.eod-lock-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
+  border-radius: 3px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 8px rgba(124,58,237,0.4);
+}
+
+.eod-lock-threshold {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 13px;
+  background: var(--accent-amber);
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(245,158,11,0.6);
+}
+
+.eod-lock-pct {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--accent-violet-light);
+  flex-shrink: 0;
+  width: 36px;
+  text-align: right;
+}
+
+.eod-lock-hint {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* EOD submitted state (button after save) */
+.eod-submitted-state {
+  background: rgba(16,185,129,0.12) !important;
+  border: 1px solid rgba(16,185,129,0.35) !important;
+  color: var(--accent-emerald) !important;
+  cursor: default !important;
+  box-shadow: none !important;
+}
+
+.eod-submitted-state:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ══════════════════════════════════════
+   HISTORY — MISSING STYLES
+══════════════════════════════════════ */
+
+/* Date row with optional "Today" badge */
+.history-entry-date-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+/* Re-target date so it resets broken margin */
+.history-entry-date-row .history-entry-date {
+  margin-bottom: 0;
+}
+
+/* "Today" highlight badge */
+.history-today-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(124,58,237,0.18);
+  border: 1px solid rgba(124,58,237,0.4);
+  color: var(--accent-violet-light);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+/* Today entry card has a subtle violet border */
+.history-entry--today {
+  border-color: rgba(124,58,237,0.28);
+  background: linear-gradient(135deg, rgba(124,58,237,0.04), rgba(6,182,212,0.02));
+}
+
+.history-entry--today:hover {
+  border-color: rgba(124,58,237,0.45);
+}

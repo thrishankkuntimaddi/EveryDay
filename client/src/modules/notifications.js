@@ -1,8 +1,10 @@
 /**
  * notifications.js — Browser notification permission and scheduling.
+ * Reads reminders from STATE.settings.reminders which is keyed by block.id.
  */
 
-import { STATE } from './state.js';
+import { STATE }  from './state.js';
+import { BLOCKS } from './data.js';
 import { showToast } from '../utils/toast.js';
 
 export async function requestNotifications() {
@@ -28,21 +30,26 @@ export function scheduleReminders() {
   const reminders = STATE.settings.reminders || {};
   const now = new Date();
 
-  const schedule = [
-    { time: reminders.morning || '06:00', label: '🌅 Time to start your Morning Block!', body: 'Meditation → Workout → Plan the day' },
-    { time: reminders.work1   || '09:00', label: '💼 Work Block 1 starting!', body: 'Resume. Applications. Momentum.' },
-    { time: reminders.evening || '18:00', label: '🌆 Evening Block time!', body: 'Communication + Reading. Stay consistent.' },
-    { time: reminders.night   || '22:00', label: '🌙 Night Reflection time.', body: 'Log your day. Build your streak.' },
-  ];
+  BLOCKS.forEach(block => {
+    const cfg = reminders[block.id];
+    if (!cfg) return;                   // block has no reminder saved yet
+    if (cfg.enabled === false) return;  // explicitly disabled
 
-  schedule.forEach(({ label, time, body }) => {
-    const [h, m] = time.split(':').map(Number);
+    const time24 = cfg.time24 || block.time?.match(/\d{2}:\d{2}/)?.[0] || '09:00';
+    const [h, m] = time24.split(':').map(Number);
+
     const notifTime = new Date();
     notifTime.setHours(h, m, 0, 0);
 
     const delay = notifTime - now;
     if (delay > 0) {
-      setTimeout(() => new Notification(label, { body, icon: '/favicon.png' }), delay);
+      setTimeout(() => {
+        new Notification(`${block.icon} ${block.name}`, {
+          body: block.tasks.slice(0, 2).map(t => t.label).join(' · '),
+          icon: '/favicon.png',
+        });
+      }, delay);
     }
   });
 }
+
