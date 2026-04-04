@@ -152,9 +152,17 @@ function showOfflineWarning(show) {
     // Check if running on GitHub Pages or similar (no server)
     const isStaticHost = window.location.hostname.includes('github.io') ||
                          window.location.protocol === 'file:';
-    warn.textContent = isStaticHost
+    const msg = isStaticHost
       ? '📦 Static mode — data saved to this browser only.'
       : '⚠️ Server offline — changes saved locally in this browser.';
+    warn.innerHTML = `
+      <span class="offline-warning-text">${msg}</span>
+      <button class="offline-warning-close" aria-label="Dismiss" title="Dismiss">&times;</button>
+    `;
+    warn.querySelector('.offline-warning-close').addEventListener('click', () => {
+      warn.classList.remove('visible');
+      setTimeout(() => warn.remove(), 350);
+    });
     document.body.prepend(warn);
   }
   warn.classList.toggle('visible', show);
