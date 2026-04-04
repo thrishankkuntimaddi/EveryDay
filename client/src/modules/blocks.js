@@ -26,6 +26,25 @@ export function setTaskDesc(taskId, text) {
   }
 }
 
+// ── Time Formatting ──────────────────────────────────────────────────────────
+
+/** Convert "HH:MM" to "H:MM AM/PM" */
+function fmt12(hhmm) {
+  const [hStr, mStr] = (hhmm || '00:00').trim().split(':');
+  let h = parseInt(hStr, 10);
+  const m = mStr || '00';
+  const period = h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  return `${h}:${m} ${period}`;
+}
+
+/** Format a block time range like "04:00 – 08:00" → "4:00 AM – 8:00 AM" */
+function formatBlockTime(timeStr) {
+  const parts = (timeStr || '').split(/\s*[–-]\s*/);
+  if (parts.length < 2) return timeStr;
+  return `${fmt12(parts[0])} – ${fmt12(parts[1])}`;
+}
+
 // ── Progress Calculations ─────────────────────────────────────────────────────
 
 export function getOverallProgress() {
@@ -98,7 +117,7 @@ export function renderBlocks() {
           <div class="block-icon">${block.icon}</div>
           <div class="block-info">
             <div class="block-name">${block.name}</div>
-            <div class="block-time">${block.time}</div>
+            <div class="block-time">${formatBlockTime(block.time)}</div>
           </div>
         </div>
         <div class="block-header-right">
