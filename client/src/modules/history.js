@@ -57,9 +57,8 @@ function renderYearHeatmap() {
   const numWeeks = cells.length / 7;   // always a whole number (we padded both ends)
 
   // ── Month labels ──────────────────────────────────────────────────────────
-  // One span per week-column. A label appears in the first column where that
-  // month's day-1 falls, but we skip labels that would be < 3 cols from the last.
-  const weekLabels   = new Array(numWeeks).fill('');
+  // Track where each month starts so we can span labels under them
+  const monthStarts = [];
   let   lastLabelCol = -6;
 
   cells.forEach(({ dateStr, inWindow }, idx) => {
@@ -67,23 +66,30 @@ function renderYearHeatmap() {
     const d = new Date(dateStr + 'T12:00:00');
     if (d.getDate() === 1) {
       const col = Math.floor(idx / 7);
-      if (col - lastLabelCol >= 4) {           // ≥4 weeks gap → clean spacing
-        weekLabels[col] = MONTH_SHORT[d.getMonth()];
+      if (col - lastLabelCol >= 4) {
+        monthStarts.push({ month: d.getMonth(), col });
         lastLabelCol = col;
       }
     }
   });
 
   if (monthLblEl) {
+    monthLblEl.style.display = 'grid';
     monthLblEl.style.gridTemplateColumns = `repeat(${numWeeks}, var(--cell))`;
-    monthLblEl.style.columnGap           = 'var(--cell-gap)';
+    monthLblEl.style.columnGap = 'var(--cell-gap)';
     monthLblEl.innerHTML = '';
-    weekLabels.forEach(label => {
+
+    monthStarts.forEach(({ month, col }, i) => {
+      // Each label spans from this month's first col to the next month's first col
+      const nextCol = i + 1 < monthStarts.length ? monthStarts[i + 1].col : numWeeks;
       const span = document.createElement('span');
-      span.textContent = label;
+      span.textContent = MONTH_SHORT[month];
+      span.style.gridColumn = `${col + 1} / ${nextCol + 1}`;
+      span.style.textAlign = 'center';
       monthLblEl.appendChild(span);
     });
   }
+
 
   // ── Cell grid ─────────────────────────────────────────────────────────────
   let showedCount = 0;

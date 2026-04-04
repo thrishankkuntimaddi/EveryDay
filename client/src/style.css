@@ -1029,21 +1029,12 @@ body {
   overflow: hidden;   /* clip the right column's overflow at this boundary */
 }
 
-/* Left column: month-row spacer + day labels — never scrolls */
+/* Left column: day labels only — aligns with top of cells */
 .gh-left-col {
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  position: sticky;
-  left: 0;
-  z-index: 2;
-  background: var(--bg-card);   /* cover scrolled content underneath */
-}
-
-/* Spacer that matches the height of the month-labels row */
-.gh-month-row-spacer {
-  height: 22px;
-  flex-shrink: 0;
+  background: var(--bg-card);
 }
 
 /* Day-of-week labels (Sun hidden / Mon / Wed / Fri) */
@@ -1083,12 +1074,12 @@ body {
 }
 .gh-right-col::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.55); }
 
-/* Month labels row — same column structure as cells grid */
+/* Month labels row — sits BELOW the cells grid */
 .gh-month-labels {
   display: grid;
-  /* grid-template-columns set dynamically by JS */
+  /* grid-template-columns + columnGap set dynamically by JS */
   height: 22px;
-  margin-bottom: 2px;
+  margin-top: 5px;
   align-items: center;
 }
 
@@ -1217,8 +1208,7 @@ body {
   }
   .gh-day-labels span    { font-size: 0.55rem; }
   .gh-month-labels span  { font-size: 0.55rem; }
-  .gh-month-row-spacer   { height: 18px; }
-  .gh-month-labels       { height: 18px; }
+  .gh-month-labels       { height: 18px; margin-top: 4px; }
   .heatmap-cell:hover    { transform: scale(1.2); }
 }
 
