@@ -31,7 +31,7 @@ import {
 } from './modules/header.js';
 
 import { BLOCKS } from './modules/data.js';
-import { loadCustomPlan, openPlanEditor } from './modules/planEditor.js';
+import { loadCustomPlan, enterEditMode, saveEditMode, exitEditMode } from './modules/planEditor.js';
 import { renderEOD, attachEODListeners }         from './modules/eod.js';
 import { renderHistory }                          from './modules/history.js';
 import { renderProgression }                      from './modules/progression.js';
@@ -96,8 +96,10 @@ function attachGlobalListeners() {
     );
   });
 
-  // Edit Plan button
-  document.getElementById('edit-plan-btn')?.addEventListener('click', openPlanEditor);
+  // Edit Plan / Save / Cancel inline controls
+  document.getElementById('edit-plan-btn')?.addEventListener('click', enterEditMode);
+  document.getElementById('inline-save-btn')?.addEventListener('click', saveEditMode);
+  document.getElementById('inline-cancel-btn')?.addEventListener('click', exitEditMode);
 
   // Notification button
   document.getElementById('notify-btn')?.addEventListener('click', requestNotifications);
