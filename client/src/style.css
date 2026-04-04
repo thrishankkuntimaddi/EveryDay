@@ -1010,35 +1010,89 @@ body {
   margin-bottom: 10px;
 }
 
-/* ── GitHub-style contribution graph ── */
-.gh-heatmap-wrapper {
+/* ── GitHub-style year contribution graph ── */
+
+/* Outer flex: left (sticky day labels) + right (scrollable graph) */
+.gh-graph-outer {
   display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 4px;
+  align-items: flex-start;
+  gap: 0;
+  overflow: hidden;   /* clip the right column's overflow at this boundary */
 }
 
-/* Day labels: Sun(hidden) / Mon / Wed / Fri */
+/* Left column: month-row spacer + day labels — never scrolls */
+.gh-left-col {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--bg-card);   /* cover scrolled content underneath */
+}
+
+/* Spacer that matches the height of the month-labels row */
+.gh-month-row-spacer {
+  height: 22px;
+  flex-shrink: 0;
+}
+
+/* Day-of-week labels (Sun hidden / Mon / Wed / Fri) */
 .gh-day-labels {
   display: grid;
   grid-template-rows: repeat(7, var(--cell));
   gap: var(--cell-gap);
-  flex-shrink: 0;
-  align-items: center;
+  padding-right: 6px;
 }
 
 .gh-day-labels span {
-  font-size: 0.63rem;
+  font-size: 0.62rem;
   color: var(--text-muted);
   text-align: right;
   line-height: var(--cell);
   height: var(--cell);
   white-space: nowrap;
-  padding-right: 4px;
   font-family: 'Inter', sans-serif;
 }
 
-/* The actual cell grid — fills column by column (week columns) */
+/* Right column: month labels + cell grid, scrolls horizontally */
+.gh-right-col {
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;  /* smooth iOS scroll */
+  scroll-snap-type: none;
+  padding-bottom: 4px;
+}
+
+/* Thin scrollbar so it's visible but not ugly */
+.gh-right-col::-webkit-scrollbar          { height: 4px; }
+.gh-right-col::-webkit-scrollbar-track   { background: transparent; }
+.gh-right-col::-webkit-scrollbar-thumb   {
+  background: rgba(124,58,237,0.3);
+  border-radius: 2px;
+}
+.gh-right-col::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.55); }
+
+/* Month labels row — same column structure as cells grid */
+.gh-month-labels {
+  display: grid;
+  /* grid-template-columns set dynamically by JS */
+  height: 22px;
+  margin-bottom: 2px;
+  align-items: center;
+}
+
+.gh-month-labels span {
+  font-size: 0.63rem;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+  overflow: visible;
+  line-height: 1;
+}
+
+/* Cell grid — fills column-by-column (week = column, day = row) */
 .gh-cells-grid {
   display: grid;
   grid-template-rows: repeat(7, var(--cell));
@@ -1047,7 +1101,7 @@ body {
   gap: var(--cell-gap);
 }
 
-/* Base cell */
+/* ── Cells ── */
 .heatmap-cell {
   width: var(--cell);
   height: var(--cell);
@@ -1055,12 +1109,13 @@ body {
   background: rgba(255,255,255,0.06);
   cursor: default;
   position: relative;
-  transition: transform 0.1s ease;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  flex-shrink: 0;
 }
 
-.heatmap-cell:hover { transform: scale(1.3); z-index: 5; }
+.heatmap-cell:hover { transform: scale(1.35); z-index: 10; }
 
-/* Tooltip */
+/* Tooltip on hover */
 .heatmap-cell:not(.heatmap-cell--empty):hover::after {
   content: attr(data-tip);
   position: absolute;
@@ -1074,38 +1129,41 @@ body {
   font-size: 0.68rem;
   color: var(--text-primary);
   white-space: nowrap;
-  z-index: 20;
+  z-index: 30;
   pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.5);
   font-family: 'Inter', sans-serif;
 }
 
-/* Empty/padding cell */
+/* Padding / empty cells */
 .heatmap-cell--empty {
   background: transparent;
-  cursor: default;
   pointer-events: none;
 }
 
-/* Future day — very faint */
+/* Future days */
 .heatmap-cell--future {
-  background: rgba(255,255,255,0.03);
-  opacity: 0.5;
+  background: rgba(255,255,255,0.025);
+  opacity: 0.45;
+}
+
+/* Today's cell — bright ring */
+.heatmap-cell--today {
+  outline: 1.5px solid rgba(124,58,237,0.85);
+  outline-offset: 1px;
 }
 
 /* Missed day */
-.heatmap-cell--miss {
-  background: rgba(244, 63, 94, 0.3);
-}
+.heatmap-cell--miss { background: rgba(244, 63, 94, 0.3); }
 
-/* Effort intensity levels (violet scale, GitHub-style) */
+/* Effort intensity — violet scale */
 .heatmap-cell--e1 { background: rgba(124, 58, 237, 0.18); }
 .heatmap-cell--e2 { background: rgba(124, 58, 237, 0.36); }
 .heatmap-cell--e3 { background: rgba(124, 58, 237, 0.55); }
 .heatmap-cell--e4 { background: rgba(124, 58, 237, 0.75); }
 .heatmap-cell--e5 {
   background: var(--accent-violet);
-  box-shadow: 0 0 5px rgba(124,58,237,0.55);
+  box-shadow: 0 0 6px rgba(124,58,237,0.6);
 }
 
 /* ── Less → More legend ── */
@@ -1114,14 +1172,14 @@ body {
   align-items: center;
   gap: 4px;
   justify-content: flex-end;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
 .gh-legend-text {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   color: var(--text-muted);
   font-family: 'Inter', sans-serif;
-  padding: 0 3px;
+  padding: 0 2px;
 }
 
 .gh-legend-dot {
@@ -1129,6 +1187,7 @@ body {
   height: 11px;
   border-radius: 2px;
   display: inline-block;
+  flex-shrink: 0;
 }
 
 .gh-legend-dot--none { background: rgba(255,255,255,0.06); }
@@ -1137,16 +1196,23 @@ body {
 .gh-legend-dot--e3   { background: rgba(124, 58, 237, 0.55); }
 .gh-legend-dot--e5   { background: var(--accent-violet); }
 
-/* Mobile: smaller cells */
+/* ── Mobile responsive ── */
 @media (max-width: 640px) {
   .history-heatmap-section {
-    --cell: 11px;
+    --cell: 10px;
     --cell-gap: 2px;
-    padding: 14px 14px 12px;
+    padding: 14px 12px 12px;
   }
-  .gh-day-labels span { font-size: 0.58rem; }
+  .gh-day-labels span    { font-size: 0.55rem; }
+  .gh-month-labels span  { font-size: 0.55rem; }
+  .gh-month-row-spacer   { height: 18px; }
+  .gh-month-labels       { height: 18px; }
+  .heatmap-cell:hover    { transform: scale(1.2); }
 }
 
+@media (max-width: 400px) {
+  .history-heatmap-section { --cell: 9px; --cell-gap: 2px; }
+}
 
 
 /* ══════════════════════════════════════

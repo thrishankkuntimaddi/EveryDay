@@ -235,18 +235,24 @@
             <span class="history-stat-val" id="history-month-val">0 / 30 days</span>
           </div>
         </div>
-        <div class="gh-month-label" id="history-heatmap-title">April 2026</div>
-        <div class="gh-heatmap-wrapper">
-          <div class="gh-day-labels">
-            <span></span>
-            <span>Mon</span>
-            <span></span>
-            <span>Wed</span>
-            <span></span>
-            <span>Fri</span>
-            <span></span>
+        <!-- GitHub-style year heatmap -->
+        <div class="gh-graph-outer">
+          <div class="gh-left-col">
+            <div class="gh-month-row-spacer"></div>
+            <div class="gh-day-labels">
+              <span></span>
+              <span>Mon</span>
+              <span></span>
+              <span>Wed</span>
+              <span></span>
+              <span>Fri</span>
+              <span></span>
+            </div>
           </div>
-          <div class="gh-cells-grid" id="heatmap-grid"></div>
+          <div class="gh-right-col" id="gh-scrollable">
+            <div class="gh-month-labels" id="gh-month-labels"></div>
+            <div class="gh-cells-grid" id="heatmap-grid"></div>
+          </div>
         </div>
         <div class="gh-legend">
           <span class="gh-legend-text">Less</span>
