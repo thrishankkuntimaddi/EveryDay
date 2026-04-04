@@ -1415,6 +1415,12 @@ body {
 /* ══════════════════════════════════════
    RESPONSIVE
 ══════════════════════════════════════ */
+
+/* Mobile bottom nav — hidden by default (desktop) */
+.mobile-nav {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .metrics-bar { grid-template-columns: repeat(2, 1fr); }
   .phase-selector-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1422,41 +1428,113 @@ body {
 }
 
 @media (max-width: 640px) {
-  .header-inner { padding: 0 16px; gap: 16px; height: 56px; }
+  /* ── Layout ── */
+  .header-inner {
+    padding: 0 12px;
+    gap: 8px;
+    height: 52px;
+    justify-content: space-between;
+  }
   .nav-tabs { display: none; }
-  .app-main { padding: 16px 16px 100px; }
-  .metrics-bar { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-  .phase-selector-grid { grid-template-columns: repeat(2, 1fr); }
-  .brand-name { display: none; }
-  .phase-badge { display: none; }
+  .app-main { padding: 12px 12px 90px; }
   .focus-timer { font-size: 3rem; }
 
-  /* Mobile nav bottom bar */
-  .header-inner { justify-content: space-between; }
+  /* ── Metrics grid: proper 2×2 ── */
+  .metrics-bar {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .metric-card { padding: 12px 14px; gap: 10px; }
+  .metric-label { font-size: 0.68rem; }
+  .metric-value { font-size: 0.9rem; }
+
+  /* Execution ring card — stays as full-width card on its own row
+     but still within the 2-col grid (spans full width on mobile) */
+  .execution-ring-card {
+    grid-column: span 1; /* sits naturally in 2-col */
+    flex-direction: row;
+  }
+  .execution-ring-container { width: 52px; height: 52px; }
+
+  /* ── Phase selector ── */
+  .phase-selector-grid { grid-template-columns: repeat(2, 1fr); }
+
+  /* ── Hide header items that don't fit ── */
+  .brand-name     { display: none; }
+  .phase-badge    { display: none; }
+  .streak-badge   { display: none; }
+  /* Hide the two icon-only buttons (focus + notify) */
+  #focus-mode-toggle { display: none; }
+  #notify-btn        { display: none; }
+
+  /* ── Compact header controls ── */
+  .header-actions { gap: 6px; margin-left: 0; }
+
+  /* Min Mode — shrink to just the toggle, hide label */
+  .header-min-mode {
+    padding: 5px 8px;
+    gap: 5px;
+  }
+  .header-min-label { display: none; }
+
+  /* Edit Plan — shrink, hide text label, show only icon */
+  .header-edit-plan-btn {
+    padding: 6px 10px;
+    font-size: 0;
+    gap: 0;
+  }
+  .header-edit-plan-btn svg { display: block; }
+
+  /* Inline edit actions — also compact */
+  .inline-edit-label { display: none; }
+  .inline-cancel-btn,
+  .inline-save-btn   { padding: 6px 10px; font-size: 0.75rem; gap: 4px; }
+
+  /* ── Block cards ── */
+  .block-header { padding: 14px 14px 10px; }
+  .block-inner  { padding: 12px 14px 16px; }
+  .block-icon   { width: 34px; height: 34px; font-size: 1rem; }
+  .block-name   { font-size: 0.88rem; }
+
+  /* ── Task items — touch-friendly ── */
+  .task-item {
+    gap: 10px;
+    padding: 11px 12px;
+  }
+  .custom-checkbox {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+  .task-label { font-size: 0.85rem; }
+  .task-badge { font-size: 0.68rem; padding: 2px 6px; }
+
+  /* ── EOD card ── */
+  .eod-lock-overlay { flex-direction: column; gap: 12px; padding: 20px 16px; }
+  .eod-body { padding: 16px; gap: 16px; }
+
+  /* ── View header ── */
+  .view-header { margin-bottom: 16px; }
+  .view-title  { font-size: 1.4rem; }
 }
 
-/* Mobile bottom nav (only for small screens) */
+/* ── Mobile bottom nav (only ≤640px) ── */
 @media (max-width: 640px) {
   .mobile-nav {
     display: flex;
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    background: rgba(8,8,16,0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: rgba(8,8,16,0.96);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border-top: 1px solid var(--border);
-    padding: 6px 0 env(safe-area-inset-bottom, 8px);
+    padding: 6px 0 env(safe-area-inset-bottom, 10px);
     z-index: 90;
     justify-content: space-around;
     align-items: stretch;
   }
-}
 
-.mobile-nav-btn {
-  display: none; /* hidden on desktop */
-}
-
-@media (max-width: 640px) {
   .mobile-nav-btn {
     display: flex;
     flex-direction: column;
@@ -1477,21 +1555,12 @@ body {
     position: relative;
   }
 
-  .mobile-nav-btn span {
-    line-height: 1;
-  }
+  .mobile-nav-btn span { line-height: 1; }
+  .mobile-nav-btn svg  { transition: transform var(--transition); }
 
-  .mobile-nav-btn svg {
-    transition: transform var(--transition);
-  }
+  .mobile-nav-btn:hover { color: var(--text-secondary); }
 
-  .mobile-nav-btn:hover {
-    color: var(--text-secondary);
-  }
-
-  .mobile-nav-btn.active {
-    color: var(--accent-violet-light);
-  }
+  .mobile-nav-btn.active { color: var(--accent-violet-light); }
 
   .mobile-nav-btn.active::before {
     content: '';
@@ -1499,7 +1568,7 @@ body {
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 28px;
+    width: 32px;
     height: 2px;
     background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
     border-radius: 0 0 3px 3px;
@@ -1510,6 +1579,9 @@ body {
     filter: drop-shadow(0 0 5px rgba(124,58,237,0.5));
   }
 }
+
+/* Hide mobile-nav-btn on desktop (fallback) */
+.mobile-nav-btn { display: none; }
 
 /* ── Animations ── */
 @keyframes pulseGlow {
