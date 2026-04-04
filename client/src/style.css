@@ -956,14 +956,17 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 20px 22px;
+  padding: 20px 22px 16px;
   margin-bottom: 24px;
+  /* Cell size token — change here to resize the whole graph */
+  --cell: 14px;
+  --cell-gap: 3px;
 }
 
 .history-stats-row {
   display: flex;
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 
@@ -982,7 +985,7 @@ body {
 .history-stat-flame { font-size: 1rem; }
 
 .history-stat-label {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   font-weight: 600;
   text-transform: uppercase;
@@ -992,26 +995,158 @@ body {
 
 .history-stat-val {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--accent-violet-light);
 }
 
-/* Future days in the heatmap — slightly more dim */
-.heatmap-day.future-day {
-  background: rgba(255,255,255,0.02);
-  opacity: 0.45;
-}
-
-/* Section title used inside history heatmap section */
-.history-heatmap-section .section-title {
-  font-size: 0.8rem;
+/* ── Month label (e.g. "April 2026") ── */
+.gh-month-label {
+  font-size: 0.78rem;
   font-weight: 700;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
+
+/* ── GitHub-style contribution graph ── */
+.gh-heatmap-wrapper {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+/* Day labels: Sun(hidden) / Mon / Wed / Fri */
+.gh-day-labels {
+  display: grid;
+  grid-template-rows: repeat(7, var(--cell));
+  gap: var(--cell-gap);
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.gh-day-labels span {
+  font-size: 0.63rem;
+  color: var(--text-muted);
+  text-align: right;
+  line-height: var(--cell);
+  height: var(--cell);
+  white-space: nowrap;
+  padding-right: 4px;
+  font-family: 'Inter', sans-serif;
+}
+
+/* The actual cell grid — fills column by column (week columns) */
+.gh-cells-grid {
+  display: grid;
+  grid-template-rows: repeat(7, var(--cell));
+  grid-auto-flow: column;
+  grid-auto-columns: var(--cell);
+  gap: var(--cell-gap);
+}
+
+/* Base cell */
+.heatmap-cell {
+  width: var(--cell);
+  height: var(--cell);
+  border-radius: 2px;
+  background: rgba(255,255,255,0.06);
+  cursor: default;
+  position: relative;
+  transition: transform 0.1s ease;
+}
+
+.heatmap-cell:hover { transform: scale(1.3); z-index: 5; }
+
+/* Tooltip */
+.heatmap-cell:not(.heatmap-cell--empty):hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a2e;
+  border: 1px solid var(--border);
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  z-index: 20;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  font-family: 'Inter', sans-serif;
+}
+
+/* Empty/padding cell */
+.heatmap-cell--empty {
+  background: transparent;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Future day — very faint */
+.heatmap-cell--future {
+  background: rgba(255,255,255,0.03);
+  opacity: 0.5;
+}
+
+/* Missed day */
+.heatmap-cell--miss {
+  background: rgba(244, 63, 94, 0.3);
+}
+
+/* Effort intensity levels (violet scale, GitHub-style) */
+.heatmap-cell--e1 { background: rgba(124, 58, 237, 0.18); }
+.heatmap-cell--e2 { background: rgba(124, 58, 237, 0.36); }
+.heatmap-cell--e3 { background: rgba(124, 58, 237, 0.55); }
+.heatmap-cell--e4 { background: rgba(124, 58, 237, 0.75); }
+.heatmap-cell--e5 {
+  background: var(--accent-violet);
+  box-shadow: 0 0 5px rgba(124,58,237,0.55);
+}
+
+/* ── Less → More legend ── */
+.gh-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+
+.gh-legend-text {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  padding: 0 3px;
+}
+
+.gh-legend-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  display: inline-block;
+}
+
+.gh-legend-dot--none { background: rgba(255,255,255,0.06); }
+.gh-legend-dot--e1   { background: rgba(124, 58, 237, 0.18); }
+.gh-legend-dot--e2   { background: rgba(124, 58, 237, 0.36); }
+.gh-legend-dot--e3   { background: rgba(124, 58, 237, 0.55); }
+.gh-legend-dot--e5   { background: var(--accent-violet); }
+
+/* Mobile: smaller cells */
+@media (max-width: 640px) {
+  .history-heatmap-section {
+    --cell: 11px;
+    --cell-gap: 2px;
+    padding: 14px 14px 12px;
+  }
+  .gh-day-labels span { font-size: 0.58rem; }
+}
+
 
 
 /* ══════════════════════════════════════

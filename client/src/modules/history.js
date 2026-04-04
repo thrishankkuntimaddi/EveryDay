@@ -3,7 +3,7 @@
  *
  * Renders:
  *  1. Streak pill + current-month activity summary
- *  2. Month-aware heatmap (days of the current calendar month — not always 30)
+ *  2. GitHub-style monthly heatmap (week columns × day-of-week rows)
  *  3. Chronological EOD entry cards
  */
 
@@ -12,14 +12,13 @@ import { formatDateDisplay, escapeHtml } from '../utils/date.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-/** Returns the number of days in a given month (1-indexed) of a given year */
-function daysInMonth(year, month) {
-  return new Date(year, month, 0).getDate(); // month here is 1-indexed
+function daysInMonth(year, month1) {
+  // month1 is 1-indexed
+  return new Date(year, month1, 0).getDate();
 }
 
-/** Build YYYY-MM-DD string */
-function toDateStr(year, month, day) {
-  return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+function toDateStr(year, month1, day) {
+  return `${year}-${String(month1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 const MONTH_NAMES = [
@@ -27,65 +26,87 @@ const MONTH_NAMES = [
   'July','August','September','October','November','December'
 ];
 
-// ── Heatmap ───────────────────────────────────────────────────────────────────
+// ── GitHub-style Heatmap ──────────────────────────────────────────────────────
 
 function renderMonthHeatmap() {
   const grid = document.getElementById('heatmap-grid');
   if (!grid) return;
 
-  const now   = new Date();
-  const year  = now.getFullYear();
-  const month = now.getMonth() + 1; // 1-indexed
-  const total = daysInMonth(year, month);
-  const monthName = MONTH_NAMES[month - 1];
+  const now      = new Date();
+  const year     = now.getFullYear();
+  const monthIdx = now.getMonth();           // 0-indexed
+  const month1   = monthIdx + 1;             // 1-indexed
+  const monthName = MONTH_NAMES[monthIdx];
+  const total    = daysInMonth(year, month1);
+  const todayMidnight = new Date(year, monthIdx, now.getDate());
 
-  // Update title labels
+  // Update labels
   const titleEl = document.getElementById('history-heatmap-title');
   const labelEl = document.getElementById('history-month-label');
-  if (titleEl) titleEl.textContent = `${monthName} Activity`;
+  if (titleEl) titleEl.textContent = `${monthName} ${year}`;
   if (labelEl) labelEl.textContent = `${monthName} Activity`;
 
-  // Count days showed up this month
+  // First day of month: 0=Sun … 6=Sat
+  const firstDow = new Date(year, monthIdx, 1).getDay();
+
+  // Build cells array in ROW-MAJOR order:
+  //   index 0 = Sun of week-1, index 1 = Mon of week-1, … index 6 = Sat of week-1
+  //   index 7 = Sun of week-2, etc.
+  // null = padding cell (before 1st or after last day)
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);        // leading padding
+  for (let d = 1; d <= total; d++) cells.push(toDateStr(year, month1, d));
+  while (cells.length % 7 !== 0) cells.push(null);             // trailing padding
+
+  // With CSS `grid-auto-flow: column` and `grid-template-rows: repeat(7, …)`,
+  // DOM items fill top→bottom in col-0, then top→bottom in col-1, etc.
+  // Our cells[] is already in the correct order (Sun…Sat per week).
+  const numWeeks = cells.length / 7;
+
   let showedCount = 0;
-
   grid.innerHTML = '';
-  for (let day = 1; day <= total; day++) {
-    const dateStr = toDateStr(year, month, day);
-    const entry   = STATE.history.find(h => h.date === dateStr);
-    const div     = document.createElement('div');
-    div.className = 'heatmap-day';
+  grid.style.gridAutoColumns = 'var(--cell)';
 
-    // Annotate day number tooltip
-    const dayLabel = `${monthName} ${day}`;
+  cells.forEach(dateStr => {
+    const div = document.createElement('div');
 
-    if (entry) {
+    if (!dateStr) {
+      div.className = 'heatmap-cell heatmap-cell--empty';
+      grid.appendChild(div);
+      return;
+    }
+
+    div.className = 'heatmap-cell';
+    const dayNum   = parseInt(dateStr.split('-')[2], 10);
+    const entry    = STATE.history.find(h => h.date === dateStr);
+    const cellDate = new Date(year, monthIdx, dayNum);
+    const dayLabel = `${monthName} ${dayNum}`;
+    const isFuture = cellDate > todayMidnight;
+
+    if (isFuture) {
+      div.classList.add('heatmap-cell--future');
+      div.setAttribute('data-tip', dayLabel);
+    } else if (entry) {
       if (entry.showed === 'no') {
-        div.classList.add('showed-no');
-        div.setAttribute('data-tip', `${dayLabel} · Didn't show`);
+        div.classList.add('heatmap-cell--miss');
+        div.setAttribute('data-tip', `${dayLabel} · Missed`);
       } else {
         showedCount++;
-        if (entry.effort) {
-          div.classList.add(`effort-${entry.effort}`);
-        }
-        div.setAttribute('data-tip', `${dayLabel} · Effort: ${entry.effort || '?'}/5`);
+        const e = Math.min(Math.max(entry.effort || 1, 1), 5);
+        div.classList.add(`heatmap-cell--e${e}`);
+        div.setAttribute('data-tip', `${dayLabel} · Effort ${e}/5`);
       }
     } else {
-      // Future days get a subtle "future" class, past/today stay as empty
-      const today = now.getDate();
-      if (day > today) {
-        div.classList.add('future-day');
-      }
+      // Past day, no entry yet
       div.setAttribute('data-tip', dayLabel);
     }
 
     grid.appendChild(div);
-  }
+  });
 
-  // Update month summary pill
+  // Month summary pill
   const monthValEl = document.getElementById('history-month-val');
-  if (monthValEl) {
-    monthValEl.textContent = `${showedCount} / ${total} days`;
-  }
+  if (monthValEl) monthValEl.textContent = `${showedCount} / ${total} days`;
 }
 
 // ── Streak ────────────────────────────────────────────────────────────────────
@@ -104,12 +125,9 @@ function renderEntryCards() {
   const empty = document.getElementById('history-empty');
   if (!grid) return;
 
-  // Deduplicate by date — keep the latest entry for each date
   const byDate = new Map();
   STATE.history.forEach(entry => {
-    if (!byDate.has(entry.date)) {
-      byDate.set(entry.date, entry);
-    }
+    if (!byDate.has(entry.date)) byDate.set(entry.date, entry);
   });
 
   const sorted = [...byDate.values()].sort((a, b) => b.date.localeCompare(a.date));
@@ -119,7 +137,6 @@ function renderEntryCards() {
     if (empty) empty.hidden = false;
     return;
   }
-
   if (empty) empty.hidden = true;
 
   const todayStr = new Date().toISOString().slice(0, 10);
@@ -138,15 +155,12 @@ function renderEntryCards() {
       : '';
 
     const isToday = entry.date === todayStr;
-    const todayBadge = isToday
-      ? '<span class="history-today-badge">Today</span>'
-      : '';
 
     return `
       <div class="history-entry${isToday ? ' history-entry--today' : ''}">
         <div class="history-entry-date-row">
           <span class="history-entry-date">${formatDateDisplay(entry.date)}</span>
-          ${todayBadge}
+          ${isToday ? '<span class="history-today-badge">Today</span>' : ''}
         </div>
         <div class="history-entry-showed">${showedDisplay}</div>
         <div class="history-effort">${starsHtml}</div>
