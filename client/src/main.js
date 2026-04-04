@@ -133,6 +133,29 @@ function attachGlobalListeners() {
 
   // Re-init drag sort whenever blocks are re-rendered
   window.addEventListener('everyday:blocksRendered', () => initDragSort());
+
+  // Collapse / Expand All blocks
+  const collapseBtn   = document.getElementById('collapse-all-btn');
+  const collapseLabel = document.getElementById('collapse-label');
+  const collapseIcon  = document.getElementById('collapse-icon');
+  let _allCollapsed = false;
+
+  collapseBtn?.addEventListener('click', () => {
+    _allCollapsed = !_allCollapsed;
+
+    document.querySelectorAll('.block-card').forEach(card => {
+      const blockId = card.id.replace('block-card-', '');
+      const header  = document.getElementById(`block-header-${blockId}`);
+      card.classList.toggle('expanded', !_allCollapsed);
+      header?.setAttribute('aria-expanded', String(!_allCollapsed));
+    });
+
+    // Update button appearance
+    collapseLabel.textContent = _allCollapsed ? 'Expand All' : 'Collapse All';
+    collapseIcon.querySelector('polyline').setAttribute(
+      'points', _allCollapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15'
+    );
+  });
 }
 
 // ── Loading / Error UI ────────────────────────────────────────────────────────

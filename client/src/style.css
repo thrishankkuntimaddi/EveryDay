@@ -505,6 +505,36 @@ body {
 /* ══════════════════════════════════════
    BLOCKS GRID
 ══════════════════════════════════════ */
+/* ── Blocks Toolbar (Collapse All button) ── */
+.blocks-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.collapse-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  letter-spacing: 0.02em;
+}
+
+.collapse-all-btn:hover {
+  background: rgba(124, 58, 237, 0.1);
+  border-color: rgba(124, 58, 237, 0.3);
+  color: var(--accent-violet-light);
+}
+
 .blocks-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
