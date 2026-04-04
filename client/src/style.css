@@ -963,79 +963,77 @@ body {
   --cell-gap: 3px;
 }
 
-/* ── "X days showed up in the last year" headline ── */
-.gh-contrib-count {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 14px;
-  letter-spacing: -0.01em;
+/* ── LeetCode-style header ── */
+.gh-lc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
 }
 
-.history-stats-row {
+.gh-lc-left {
   display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
+  align-items: baseline;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
-.history-stat-pill {
+.gh-lc-count {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  font-family: 'Inter', sans-serif;
+}
+
+.gh-lc-sub {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.gh-lc-right {
   display: flex;
   align-items: center;
-  gap: 8px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--border-subtle);
-  border-radius: 40px;
-  padding: 8px 16px;
-  flex: 1;
-  min-width: 160px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-.history-stat-flame { font-size: 1rem; }
-
-.history-stat-label {
-  font-size: 0.75rem;
+.gh-lc-stat {
+  font-size: 0.82rem;
   color: var(--text-muted);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  flex: 1;
+  font-family: 'Inter', sans-serif;
 }
 
-.history-stat-val {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.88rem;
+.gh-lc-stat strong {
+  color: var(--text-primary);
   font-weight: 700;
-  color: var(--accent-violet-light);
 }
 
-/* ── Month label (e.g. "April 2026") ── */
-.gh-month-label {
-  font-size: 0.78rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 10px;
+.gh-lc-divider {
+  color: var(--border);
+  font-size: 1rem;
+  line-height: 1;
 }
 
-/* ── GitHub-style year contribution graph ── */
-
-/* Outer flex: left (sticky day labels) + right (scrollable graph) */
-.gh-graph-outer {
-  display: flex;
-  align-items: flex-start;
-  gap: 0;
-  overflow: hidden;   /* clip the right column's overflow at this boundary */
+/* ── Scrollable heatmap wrapper (no left column) ── */
+.gh-scroll-wrap {
+  overflow-x: auto;
+  overflow-y: hidden;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px;
 }
 
-/* Left column: day labels only — aligns with top of cells */
-.gh-left-col {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  background: var(--bg-card);
+.gh-scroll-wrap::-webkit-scrollbar          { height: 4px; }
+.gh-scroll-wrap::-webkit-scrollbar-track   { background: transparent; }
+.gh-scroll-wrap::-webkit-scrollbar-thumb   {
+  background: rgba(124,58,237,0.3);
+  border-radius: 2px;
 }
+.gh-scroll-wrap::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.55); }
 
 /* Day-of-week labels (Sun hidden / Mon / Wed / Fri) */
 .gh-day-labels {
@@ -1208,6 +1206,10 @@ body {
   .gh-month-labels span  { font-size: 0.55rem; }
   .gh-month-labels       { height: 18px; margin-top: 4px; }
   .heatmap-cell:hover    { transform: scale(1.2); }
+  .gh-lc-count           { font-size: 1.1rem; }
+  .gh-lc-sub             { font-size: 0.78rem; }
+  .gh-lc-stat            { font-size: 0.73rem; }
+  .gh-lc-header          { flex-direction: column; align-items: flex-start; gap: 6px; }
 }
 
 @media (max-width: 400px) {

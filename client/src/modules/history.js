@@ -21,7 +21,6 @@ function renderYearHeatmap() {
   const grid       = document.getElementById('heatmap-grid');
   const monthLblEl = document.getElementById('gh-month-labels');
   const scrollEl   = document.getElementById('gh-scrollable');
-  const contribEl  = document.getElementById('gh-contrib-count');
   if (!grid) return;
 
   const now   = new Date();
@@ -140,17 +139,11 @@ function renderYearHeatmap() {
     grid.appendChild(div);
   });
 
-  // ── Update stat labels ────────────────────────────────────────────────────
-  const monthValEl = document.getElementById('history-month-val');
-  const monthLbEl  = document.getElementById('history-month-label');
-  if (monthValEl) monthValEl.textContent = `${showedCount} days`;
-  if (monthLbEl)  monthLbEl.textContent  = 'Last 365 days';
-
-  // Top contributions line: "X days showed up in the last year"
-  if (contribEl) {
-    contribEl.textContent =
-      `${showedCount} day${showedCount !== 1 ? 's' : ''} showed up in the last year`;
-  }
+  // ── Update LeetCode-style header stats ───────────────────────────────────
+  const lcCountEl  = document.getElementById('gh-lc-count');
+  const lcTotalEl  = document.getElementById('gh-lc-total');
+  if (lcCountEl) lcCountEl.textContent  = String(showedCount);
+  if (lcTotalEl) lcTotalEl.textContent  = String(showedCount);
 
   // ── Scroll to rightmost (today's column) ─────────────────────────────────
   if (scrollEl) {
@@ -163,10 +156,13 @@ function renderYearHeatmap() {
 // ── Streak pill ───────────────────────────────────────────────────────────────
 
 function renderStreakPill() {
-  const el = document.getElementById('history-streak-val');
-  if (!el) return;
   const count = STATE.streak?.count ?? 0;
-  el.textContent = `${count} ${count === 1 ? 'day' : 'days'}`;
+  // Old pill (may not exist)
+  const oldEl = document.getElementById('history-streak-val');
+  if (oldEl) oldEl.textContent = `${count} days`;
+  // New LeetCode-style streak
+  const lcStreakEl = document.getElementById('gh-lc-streak');
+  if (lcStreakEl) lcStreakEl.textContent = String(count);
 }
 
 // ── EOD Entry cards ───────────────────────────────────────────────────────────
