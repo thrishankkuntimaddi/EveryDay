@@ -1380,3 +1380,75 @@ body {
   0%   { background-position: -200% 0; }
   100% { background-position:  200% 0; }
 }
+
+/* ══════════════════════════════════════
+   CLIENT-SERVER UI ADDITIONS
+══════════════════════════════════════ */
+
+/* Loading banner */
+.loading-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 9999;
+  background: rgba(124, 58, 237, 0.15);
+  border-bottom: 1px solid rgba(124, 58, 237, 0.4);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px;
+  font-size: 0.875rem;
+  color: var(--accent-violet-light);
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.loading-banner.visible { opacity: 1; pointer-events: auto; }
+
+.loading-spinner {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(124,58,237,0.3);
+  border-top-color: var(--accent-violet-light);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Offline warning */
+.offline-warning {
+  position: fixed;
+  bottom: 80px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 9000;
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid rgba(244, 63, 94, 0.4);
+  border-radius: var(--radius-md);
+  padding: 10px 20px;
+  font-size: 0.85rem;
+  color: #ff8fa3;
+  font-weight: 500;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+}
+.offline-warning.visible { opacity: 1; }
+
+/* Toast type variants */
+.toast.success {
+  background: rgba(16, 185, 129, 0.95);
+  border-color: rgba(16, 185, 129, 0.6);
+  color: white;
+}
+
+.toast.error {
+  background: rgba(244, 63, 94, 0.95);
+  border-color: rgba(244, 63, 94, 0.6);
+  color: white;
+}
+

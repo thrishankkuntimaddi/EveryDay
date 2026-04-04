@@ -6,13 +6,11 @@
   <meta name="description" content="EveryDay — Your personal discipline, progression, and execution tracking system. Build identity through consistency." />
   <title>EveryDay — Discipline. Progression. Execution.</title>
 
-  <!-- ── FAVICON ── -->
-  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-  <link rel="icon" type="image/png" href="favicon.png" sizes="512x512" />
-  <link rel="apple-touch-icon" href="favicon.png" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" href="/favicon.png" sizes="512x512" />
+  <link rel="apple-touch-icon" href="/favicon.png" />
   <meta name="theme-color" content="#080810" />
 
-  <!-- ── Open Graph (social / GitHub Pages preview) ── -->
   <meta property="og:title" content="EveryDay — Discipline. Progression. Execution." />
   <meta property="og:description" content="A personal discipline and execution tracking system. Build identity through consistency." />
   <meta property="og:type" content="website" />
@@ -21,7 +19,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
@@ -39,7 +36,6 @@
         <span class="brand-name">EveryDay</span>
       </div>
 
-      <!-- Tabs -->
       <nav class="nav-tabs" role="navigation" aria-label="Main navigation">
         <button class="nav-tab active" data-view="dashboard" id="tab-dashboard">Dashboard</button>
         <button class="nav-tab" data-view="history" id="tab-history">History</button>
@@ -47,7 +43,6 @@
         <button class="nav-tab" data-view="settings" id="tab-settings">Settings</button>
       </nav>
 
-      <!-- Header right actions -->
       <div class="header-actions">
         <div class="streak-badge" id="header-streak" title="Current streak">
           <span class="flame">🔥</span>
@@ -96,7 +91,6 @@
     <!-- ======= DASHBOARD VIEW ======= -->
     <div class="view active" id="view-dashboard">
 
-      <!-- Top metrics bar -->
       <div class="metrics-bar">
         <div class="metric-card" id="metric-today">
           <div class="metric-icon">📅</div>
@@ -128,7 +122,6 @@
         </div>
       </div>
 
-      <!-- Overall daily progress bar -->
       <div class="master-progress-wrapper">
         <div class="master-progress-info">
           <span>Today's Execution</span>
@@ -139,7 +132,6 @@
         </div>
       </div>
 
-      <!-- Minimum Mode Toggle -->
       <div class="min-mode-bar">
         <div class="min-mode-info">
           <span class="min-mode-title">Minimum Mode</span>
@@ -151,12 +143,10 @@
         </label>
       </div>
 
-      <!-- BLOCKS GRID -->
       <div class="blocks-grid" id="blocks-grid">
         <!-- Dynamically rendered by JS -->
       </div>
 
-      <!-- END OF DAY CHECK-IN -->
       <div class="eod-card" id="eod-card">
         <div class="eod-header">
           <div class="eod-title">
@@ -199,9 +189,7 @@
         <h2 class="view-title">Execution History</h2>
         <p class="view-sub">Every day you showed up is recorded here.</p>
       </div>
-      <div class="history-grid" id="history-grid">
-        <!-- Rendered by JS -->
-      </div>
+      <div class="history-grid" id="history-grid"></div>
       <div class="history-empty" id="history-empty" hidden>
         <div class="empty-icon">📭</div>
         <p>No history yet. Complete your first day and submit a reflection.</p>
@@ -214,16 +202,8 @@
         <h2 class="view-title">Growth Phases</h2>
         <p class="view-sub">You evolve through phases — not timetables.</p>
       </div>
-
-      <div class="phase-selector-grid" id="phase-selector-grid">
-        <!-- Rendered by JS -->
-      </div>
-
-      <div class="phase-detail-card" id="phase-detail-card">
-        <!-- Rendered by JS -->
-      </div>
-
-      <!-- Weekly heatmap -->
+      <div class="phase-selector-grid" id="phase-selector-grid"></div>
+      <div class="phase-detail-card" id="phase-detail-card"></div>
       <div class="heatmap-section">
         <h3 class="section-title">30-Day Activity</h3>
         <div class="heatmap-grid" id="heatmap-grid"></div>
@@ -234,7 +214,6 @@
           <span class="legend-item"><span class="legend-dot high"></span>High</span>
         </div>
       </div>
-
     </div><!-- /view-progression -->
 
     <!-- ======= SETTINGS VIEW ======= -->
@@ -284,7 +263,7 @@
 
         <div class="settings-card danger-zone">
           <h3 class="settings-card-title">Data</h3>
-          <p class="settings-desc">All your data is stored locally in your browser. Export or clear it here.</p>
+          <p class="settings-desc">All your data is stored on the server. Export or clear it here.</p>
           <div class="data-actions">
             <button class="settings-export-btn" id="export-data">📤 Export Data</button>
             <button class="settings-danger-btn" id="reset-data">🗑 Reset All Data</button>
@@ -300,6 +279,6 @@
   <!-- Toast notification -->
   <div class="toast" id="toast" aria-live="polite"></div>
 
-  <script src="app.js"></script>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>

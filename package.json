@@ -1,13 +1,18 @@
 {
   "name": "everyday",
-  "version": "1.0.0",
-  "description": "EveryDay — Personal discipline, progression, and execution tracking system",
+  "version": "2.0.0",
+  "description": "EveryDay — Discipline. Progression. Execution. (Client-Server Architecture)",
   "private": true,
   "scripts": {
-    "dev": "npx serve . -p 3000 --no-clipboard",
-    "start": "npx serve . -p 3000"
+    "install:all": "npm install --prefix server && npm install --prefix client",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "dev": "concurrently --names 'SERVER,CLIENT' --prefix-colors 'magenta,cyan' \"npm run dev:server\" \"npm run dev:client\"",
+    "start": "npm run dev"
   },
-  "keywords": ["discipline", "productivity", "tracker", "progression"],
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
   "author": "Thrishank Kuntimaddi",
   "license": "MIT"
 }
