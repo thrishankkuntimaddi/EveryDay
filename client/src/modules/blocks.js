@@ -144,19 +144,13 @@ function attachBlockListeners() {
 }
 
 export function toggleBlock(blockId) {
-  const card = document.getElementById(`block-card-${blockId}`);
+  const card   = document.getElementById(`block-card-${blockId}`);
   const header = document.getElementById(`block-header-${blockId}`);
+  if (!card || !header) return;
+
   const isExpanded = card.classList.contains('expanded');
-
-  document.querySelectorAll('.block-card.expanded').forEach(c => {
-    c.classList.remove('expanded');
-    c.querySelector('.block-header').setAttribute('aria-expanded', 'false');
-  });
-
-  if (!isExpanded) {
-    card.classList.add('expanded');
-    header.setAttribute('aria-expanded', 'true');
-  }
+  card.classList.toggle('expanded', !isExpanded);
+  header.setAttribute('aria-expanded', String(!isExpanded));
 }
 
 // ── Task Toggle (calls server) ────────────────────────────────────────────────
@@ -262,10 +256,11 @@ export function applyMinimumMode() {
 }
 
 export function openFirstBlock() {
-  if (BLOCKS.length > 0) {
-    const firstId = BLOCKS[0].id;
-    const card   = document.getElementById(`block-card-${firstId}`);
-    const header = document.getElementById(`block-header-${firstId}`);
-    if (card) { card.classList.add('expanded'); header?.setAttribute('aria-expanded', 'true'); }
-  }
+  // Expand all blocks on load so the full day plan is visible
+  BLOCKS.forEach(block => {
+    const card   = document.getElementById(`block-card-${block.id}`);
+    const header = document.getElementById(`block-header-${block.id}`);
+    if (card)   card.classList.add('expanded');
+    if (header) header.setAttribute('aria-expanded', 'true');
+  });
 }

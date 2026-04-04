@@ -628,7 +628,7 @@ body {
 }
 
 .block-card.expanded .block-body {
-  max-height: 600px;
+  max-height: 1000px;
 }
 
 .block-inner {
