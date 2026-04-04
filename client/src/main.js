@@ -31,6 +31,7 @@ import {
 } from './modules/header.js';
 
 import { BLOCKS } from './modules/data.js';
+import { loadCustomPlan, openPlanEditor } from './modules/planEditor.js';
 import { renderEOD, attachEODListeners }         from './modules/eod.js';
 import { renderHistory }                          from './modules/history.js';
 import { renderProgression }                      from './modules/progression.js';
@@ -94,6 +95,9 @@ function attachGlobalListeners() {
       : 'Full mode restored'
     );
   });
+
+  // Edit Plan button
+  document.getElementById('edit-plan-btn')?.addEventListener('click', openPlanEditor);
 
   // Notification button
   document.getElementById('notify-btn')?.addEventListener('click', requestNotifications);
@@ -186,6 +190,9 @@ async function boot() {
   }
 
   showLoadingBanner(false);
+
+  // 3b. Load any user-customised plan from localStorage (overrides default BLOCKS)
+  loadCustomPlan();
 
   // 4. Render UI (works even if server is down)
   updateTodayDate();
