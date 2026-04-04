@@ -60,14 +60,14 @@ function renderYearHeatmap() {
   // One span per week-column. A label appears in the first column where that
   // month's day-1 falls, but we skip labels that would be < 3 cols from the last.
   const weekLabels   = new Array(numWeeks).fill('');
-  let   lastLabelCol = -5;
+  let   lastLabelCol = -6;
 
   cells.forEach(({ dateStr, inWindow }, idx) => {
     if (!inWindow) return;
     const d = new Date(dateStr + 'T12:00:00');
     if (d.getDate() === 1) {
       const col = Math.floor(idx / 7);
-      if (col - lastLabelCol >= 3) {           // ≥3 weeks gap → no overlap
+      if (col - lastLabelCol >= 4) {           // ≥4 weeks gap → clean spacing
         weekLabels[col] = MONTH_SHORT[d.getMonth()];
         lastLabelCol = col;
       }
