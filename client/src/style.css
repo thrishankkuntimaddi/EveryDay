@@ -866,7 +866,6 @@ body {
 }
 
 /* ── Task Description Button ── */
-/* ── Task Description Button ── */
 .task-desc-btn {
   background: none;
   border: none;
@@ -883,19 +882,31 @@ body {
   flex-shrink: 0;
   transition: all var(--transition);
   position: relative;
+  opacity: 0;          /* hidden until task is hovered */
+}
+
+/* Show on task hover */
+.task-item:hover .task-desc-btn {
+  opacity: 0.55;
 }
 
 .task-desc-btn:hover {
+  opacity: 1 !important;
   color: var(--accent-violet-light);
   background: rgba(124, 58, 237, 0.14);
 }
 
 .task-desc-btn.desc-btn-active {
+  opacity: 1 !important;
   color: var(--accent-violet-light);
   background: rgba(124, 58, 237, 0.2);
 }
 
-/* Orange dot when a description exists */
+/* Always visible + orange dot when description exists */
+.task-desc-btn.has-desc {
+  opacity: 1 !important;
+}
+
 .task-desc-btn.has-desc::after {
   content: '';
   position: absolute;
@@ -909,6 +920,9 @@ body {
 }
 
 /* ── Task Description Panel ── */
+/* CRITICAL: CSS display overrides HTML hidden — must enforce it */
+.task-desc-panel[hidden] { display: none !important; }
+
 .task-desc-panel {
   margin: 0 0 4px 44px;
   padding: 10px 12px 8px;
@@ -3147,7 +3161,13 @@ body {
     color: var(--text-muted);
   }
 
-  /* Task description panel: less left margin */
+  /* Always show desc button on mobile (no hover) */
+  .task-desc-btn { opacity: 0.45 !important; }
+  .task-desc-btn.has-desc,
+  .task-desc-btn.desc-btn-active { opacity: 1 !important; }
+
+  /* Task description panel: less left margin, still respect hidden */
+  .task-desc-panel[hidden] { display: none !important; }
   .task-desc-panel {
     margin-left: 14px;
   }
