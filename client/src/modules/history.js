@@ -6,165 +6,176 @@ const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct'
 function pad(n) { return String(n).padStart(2, '0'); }
 function toDateStr(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 
-// ── Rolling 365-day contribution heatmap ───────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+//  SVG-based heatmap — identical technique to LeetCode's contribution graph.
 //
-//  Layout (CSS grid):
-//    Row 1          = month name labels
-//    Rows 2–8       = Sun, Mon, Tue, Wed, Thu, Fri, Sat  (one cell per day)
-//    Columns        = one per week (Monday=start of column?, NO — Sun=row2)
+//  LeetCode uses:
+//    cell = 8.86px,  inner-gap = 2.66px,  month-extra-gap = 4.47px
+//    labels as <text> elements BELOW the grid at y ≈ 97px
 //
-//  Every cell gets EXPLICIT gridColumn + gridRow so auto-flow never runs.
-//  Month labels live in row 1 at their week's column, text overflows right.
-//  The natural ~4–5 wide columns per month create the visual cluster gap.
+//  We use:
+//    C = 11px,  G = 2px,  MG = 6px  (proportionally same visual)
+//    PITCH (within month) = C + G = 13px
+//    Between months x-jump = PITCH + MG = 19px
 // ─────────────────────────────────────────────────────────────────────────────
 
+const C  = 11;          // cell size (px)
+const G  = 2;           // gap between cells
+const MG = 6;           // EXTRA gap added between month groups
+const P  = C + G;       // within-month x pitch = 13
+
 function renderYearHeatmap() {
-  const grid     = document.getElementById('heatmap-grid');
-  const scrollEl = document.getElementById('gh-scrollable');
-  if (!grid) return;
+  const container = document.getElementById('heatmap-grid');
+  const scrollEl  = document.getElementById('gh-scrollable');
+  if (!container) return;
 
   /* ── Date math ──────────────────────────────────────────────────────── */
   const now   = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayStr = toDateStr(today);
 
-  // 365-day window: [windowStart … today]
   const windowStart = new Date(today);
-  windowStart.setDate(today.getDate() - 364);
+  windowStart.setDate(today.getDate() - 364);           // 365-day rolling window
 
-  // Grid starts at the Sunday of windowStart's week
   const gridStart = new Date(windowStart);
-  gridStart.setDate(windowStart.getDate() - windowStart.getDay()); // getDay()==0 → Sun
+  gridStart.setDate(windowStart.getDate() - windowStart.getDay()); // back to Sunday
 
-  // Grid ends at the Saturday of today's week
   const gridEnd = new Date(today);
-  gridEnd.setDate(today.getDate() + (6 - today.getDay()));
+  gridEnd.setDate(today.getDate() + (6 - today.getDay())); // forward to Saturday
 
-  /* ── Build flat day array (always a multiple of 7) ─────────────────── */
+  /* ── Build flat day array (always multiple of 7) ─────────────────── */
   const days = [];
   for (let d = new Date(gridStart); d <= gridEnd; d.setDate(d.getDate() + 1)) {
     days.push(new Date(d));
   }
-  const numWeeks = days.length / 7; // guaranteed integer (Sun→Sat span)
+  const W = days.length / 7;  // total week columns
 
-  /* ── Set up grid ────────────────────────────────────────────────────── */
-  // Row 1 (height --lbl-h) = month labels
-  // Rows 2-8 (height --cell each) = Sun through Sat
-  grid.style.display             = 'grid';
-  grid.style.gridTemplateColumns = `repeat(${numWeeks}, var(--cell))`;
-  grid.style.gridTemplateRows    = `var(--lbl-h, 18px) repeat(7, var(--cell))`;
-  grid.style.columnGap           = 'var(--cell-gap)';
-  grid.style.rowGap              = 'var(--cell-gap)';
-  grid.innerHTML                 = '';
+  /* ── Detect month label positions ──────────────────────────────────── */
+  // Rule A: label the first in-window month at the week containing its first in-window day.
+  // Rule B: label every month whose day-1 falls inside the window.
+  const labels = []; // [{ wi, month }]  sorted by wi
+  const seenKey = new Set();
 
-  /* ── Month labels (grid row 1) ──────────────────────────────────────── */
-  // Rule A: label the month of the very first in-window day (no day-of-month filter)
-  // Rule B: label any month whose 1st day falls inside the window
-  // This ensures e.g. Apr shows even when Apr 1 is before the window start.
-
-  const labeledMonths = new Set(); // "YYYY-MM" keys to avoid duplicates
-
-  function addLabel(weekIdx, date) {
-    const key = `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
-    if (labeledMonths.has(key)) return;
-    labeledMonths.add(key);
-
-    const lbl = document.createElement('span');
-    lbl.className        = 'gh-month-lbl-item';
-    lbl.textContent      = MONTH_SHORT[date.getMonth()];
-    lbl.style.gridColumn = String(weekIdx + 1);
-    lbl.style.gridRow    = '1';
-    grid.appendChild(lbl);
-  }
-
-  // Rule A — first in-window month
-  let ruleADone = false;
+  // Rule A
   outer:
-  for (let w = 0; w < numWeeks; w++) {
+  for (let w = 0; w < W; w++) {
     for (let r = 0; r < 7; r++) {
-      const day = days[w * 7 + r];
-      if (day >= windowStart && day <= today) {
-        addLabel(w, day);
-        ruleADone = true;
+      const d = days[w * 7 + r];
+      if (d >= windowStart && d <= today) {
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        seenKey.add(key);
+        labels.push({ wi: w, month: d.getMonth() });
         break outer;
       }
     }
   }
 
-  // Rule B — every day-1 in the window
-  for (let w = 0; w < numWeeks; w++) {
+  // Rule B
+  for (let w = 0; w < W; w++) {
     for (let r = 0; r < 7; r++) {
-      const day = days[w * 7 + r];
-      if (day >= windowStart && day <= today && day.getDate() === 1) {
-        addLabel(w, day);
+      const d = days[w * 7 + r];
+      if (d >= windowStart && d <= today && d.getDate() === 1) {
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        if (!seenKey.has(key)) {
+          seenKey.add(key);
+          labels.push({ wi: w, month: d.getMonth() });
+        }
       }
     }
   }
+  labels.sort((a, b) => a.wi - b.wi);
 
-  /* ── Day cells (grid rows 2–8) ──────────────────────────────────────── */
-  // r=0 → Sun → gridRow 2
-  // r=1 → Mon → gridRow 3
-  // ...
-  // r=6 → Sat → gridRow 8
+  /* ── Compute SVG x position of each week column ─────────────────── */
+  // Between months we add MG extra pixels; within a month just P pitch.
+  const boundarySet = new Set(labels.map(l => l.wi));
+  const weekX = new Float32Array(W);
+  weekX[0] = 0;
+  for (let w = 1; w < W; w++) {
+    weekX[w] = weekX[w-1] + P + (boundarySet.has(w) ? MG : 0);
+  }
+
+  /* ── SVG dimensions ─────────────────────────────────────────────── */
+  const svgW   = W > 0 ? weekX[W-1] + C : 0;    // total width
+  const gridH  = 7 * C + 6 * G;                  // 7×11 + 6×2 = 89px
+  const labelY = gridH + 14;                      // 103px — below the grid
+  const svgH   = labelY + 13;                     // 116px total SVG height
+
+  /* ── Build entries map ───────────────────────────────────────────── */
+  const entMap = new Map();
+  STATE.history.forEach(e => { if (!entMap.has(e.date)) entMap.set(e.date, e); });
+
+  /* ── Render SVG ─────────────────────────────────────────────────── */
   let showedCount = 0;
-  const todayStr = toDateStr(today);
+  const parts = [];
 
-  for (let w = 0; w < numWeeks; w++) {
+  for (let w = 0; w < W; w++) {
+    const x = weekX[w].toFixed(2);
+
     for (let r = 0; r < 7; r++) {
-      const day  = days[w * 7 + r];
-      const div  = document.createElement('div');
+      const day    = days[w * 7 + r];
+      const y      = (r * P).toFixed(2);
+      const inWin  = day >= windowStart && day <= today;
 
-      // ALWAYS set explicit placement — no auto-flow ever
-      div.style.gridColumn = String(w + 1);
-      div.style.gridRow    = String(r + 2);
-
-      const inWindow = day >= windowStart && day <= today;
-
-      if (!inWindow) {
-        div.className = 'heatmap-cell heatmap-cell--empty';
-        grid.appendChild(div);
+      if (!inWin) {
+        // Out-of-window cells: transparent placeholder (keeps geometry correct)
+        parts.push(`<rect x="${x}" y="${y}" width="${C}" height="${C}" fill="transparent" rx="2"/>`);
         continue;
       }
 
-      div.className = 'heatmap-cell';
-      const ds      = toDateStr(day);
-      const tip     = `${MONTH_SHORT[day.getMonth()]} ${day.getDate()}`;
-      const entry   = STATE.history.find(h => h.date === ds);
+      const ds     = toDateStr(day);
+      const isToday = ds === todayStr;
+      const tip    = `${MONTH_SHORT[day.getMonth()]} ${day.getDate()}`;
+      const entry  = entMap.get(ds);
 
-      if (ds === todayStr) div.classList.add('heatmap-cell--today');
+      let fill   = 'var(--heat-0)';
+      let stroke = isToday ? 'var(--heat-ring)' : 'none';
+      let sw     = isToday ? '1.5' : '0';
 
       if (entry) {
         if (entry.showed === 'no') {
-          div.classList.add('heatmap-cell--miss');
-          div.setAttribute('data-tip', `${tip} · Missed`);
+          fill = 'var(--heat-miss)';
         } else {
           showedCount++;
           const e = Math.min(Math.max(entry.effort || 1, 1), 5);
-          div.classList.add(`heatmap-cell--e${e}`);
-          div.setAttribute('data-tip', `${tip} · Effort ${e}/5`);
+          fill = `var(--heat-${e})`;
         }
-      } else {
-        div.setAttribute('data-tip', tip);
       }
 
-      grid.appendChild(div);
+      parts.push(
+        `<rect x="${x}" y="${y}" width="${C}" height="${C}" ` +
+        `fill="${fill}" rx="2" stroke="${stroke}" stroke-width="${sw}" ` +
+        `class="hm-cell"><title>${tip}</title></rect>`
+      );
     }
   }
 
-  /* ── Stats ──────────────────────────────────────────────────────────── */
+  // Month labels — <text> elements below the grid (y = labelY)
+  labels.forEach(({ wi, month }) => {
+    const x = weekX[wi].toFixed(2);
+    parts.push(`<text x="${x}" y="${labelY}" class="hm-label">${MONTH_SHORT[month]}</text>`);
+  });
+
+  /* ── Inject SVG ─────────────────────────────────────────────────── */
+  // Clear any lingering grid inline styles from previous renders
+  container.removeAttribute('style');
+  container.innerHTML =
+    `<svg viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" class="hm-svg">${parts.join('')}</svg>`;
+
+  /* ── Stats ───────────────────────────────────────────────────────── */
   const lcCount = document.getElementById('gh-lc-count');
   const lcTotal = document.getElementById('gh-lc-total');
   if (lcCount) lcCount.textContent = String(showedCount);
   if (lcTotal) lcTotal.textContent = String(showedCount);
 
-  /* ── Scroll to today ────────────────────────────────────────────────── */
+  /* ── Scroll to today ─────────────────────────────────────────────── */
   if (scrollEl) requestAnimationFrame(() => { scrollEl.scrollLeft = scrollEl.scrollWidth; });
 }
 
 /* ── Streak ─────────────────────────────────────────────────────────────────── */
 function renderStreakPill() {
-  const count  = STATE.streak?.count ?? 0;
-  const oldEl  = document.getElementById('history-streak-val');
-  const lcEl   = document.getElementById('gh-lc-streak');
+  const count = STATE.streak?.count ?? 0;
+  const oldEl = document.getElementById('history-streak-val');
+  const lcEl  = document.getElementById('gh-lc-streak');
   if (oldEl) oldEl.textContent = `${count} days`;
   if (lcEl)  lcEl.textContent  = String(count);
 }
