@@ -971,10 +971,10 @@ body {
   color: var(--text-muted);
   font-family: 'Inter', sans-serif;
   white-space: nowrap;
-  display: flex;
-  align-items: flex-end;
-  padding-bottom: 3px;
-  overflow: hidden;
+  overflow: visible;        /* must be visible — grid cell is only 14px wide */
+  align-self: end;
+  padding-bottom: 2px;
+  letter-spacing: 0.01em;
 }
 
 
