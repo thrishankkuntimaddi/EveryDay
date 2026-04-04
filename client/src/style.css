@@ -1081,6 +1081,7 @@ body {
   height: 22px;
   margin-top: 5px;
   align-items: center;
+  overflow: visible;   /* let text overflow beyond single-column cell width */
 }
 
 .gh-month-labels span {
@@ -1091,8 +1092,6 @@ body {
   white-space: nowrap;
   overflow: visible;
   line-height: 1;
-  padding-left: 2px;
-  letter-spacing: 0.02em;
 }
 
 /* Cell grid — fills column-by-column (week = column, day = row) */

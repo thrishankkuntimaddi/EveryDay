@@ -79,13 +79,13 @@ function renderYearHeatmap() {
     monthLblEl.style.columnGap = 'var(--cell-gap)';
     monthLblEl.innerHTML = '';
 
-    monthStarts.forEach(({ month, col }, i) => {
-      // Each label spans from this month's first col to the next month's first col
-      const nextCol = i + 1 < monthStarts.length ? monthStarts[i + 1].col : numWeeks;
+    monthStarts.forEach(({ month, col }) => {
       const span = document.createElement('span');
       span.textContent = MONTH_SHORT[month];
-      span.style.gridColumn = `${col + 1} / ${nextCol + 1}`;
-      span.style.textAlign = 'center';
+      // Position at the month's first week column — text overflows visually,
+      // and the empty grid columns before the next month create natural spacing.
+      span.style.gridColumnStart = String(col + 1);
+      // No gridColumnEnd → defaults to span 1 col; text overflows visibly
       monthLblEl.appendChild(span);
     });
   }
