@@ -220,6 +220,31 @@
         <h2 class="view-title">Execution History</h2>
         <p class="view-sub">Every day you showed up is recorded here.</p>
       </div>
+
+      <!-- Streak + Month Activity -->
+      <div class="history-heatmap-section" id="history-heatmap-section">
+        <div class="history-stats-row">
+          <div class="history-stat-pill" id="history-streak-pill">
+            <span class="history-stat-flame">🔥</span>
+            <span class="history-stat-label">Current Streak</span>
+            <span class="history-stat-val" id="history-streak-val">0 days</span>
+          </div>
+          <div class="history-stat-pill" id="history-month-pill">
+            <span class="history-stat-flame">📅</span>
+            <span class="history-stat-label" id="history-month-label">April Activity</span>
+            <span class="history-stat-val" id="history-month-val">0 / 30 days</span>
+          </div>
+        </div>
+        <h3 class="section-title" id="history-heatmap-title">April Activity</h3>
+        <div class="heatmap-grid" id="heatmap-grid"></div>
+        <div class="heatmap-legend">
+          <span class="legend-item"><span class="legend-dot empty"></span>None</span>
+          <span class="legend-item"><span class="legend-dot low"></span>Low</span>
+          <span class="legend-item"><span class="legend-dot mid"></span>Mid</span>
+          <span class="legend-item"><span class="legend-dot high"></span>High</span>
+        </div>
+      </div>
+
       <div class="history-grid" id="history-grid"></div>
       <div class="history-empty" id="history-empty" hidden>
         <div class="empty-icon">📭</div>
@@ -235,16 +260,6 @@
       </div>
       <div class="phase-selector-grid" id="phase-selector-grid"></div>
       <div class="phase-detail-card" id="phase-detail-card"></div>
-      <div class="heatmap-section">
-        <h3 class="section-title">30-Day Activity</h3>
-        <div class="heatmap-grid" id="heatmap-grid"></div>
-        <div class="heatmap-legend">
-          <span class="legend-item"><span class="legend-dot empty"></span>None</span>
-          <span class="legend-item"><span class="legend-dot low"></span>Low</span>
-          <span class="legend-item"><span class="legend-dot mid"></span>Mid</span>
-          <span class="legend-item"><span class="legend-dot high"></span>High</span>
-        </div>
-      </div>
     </div><!-- /view-progression -->
 
     <!-- ======= SETTINGS VIEW ======= -->

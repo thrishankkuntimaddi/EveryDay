@@ -1,5 +1,6 @@
 /**
- * progression.js — Phase selector, detail card, and heatmap rendering.
+ * progression.js — Phase selector and detail card rendering.
+ * The monthly activity heatmap lives in history.js.
  */
 
 import { STATE } from './state.js';
@@ -7,12 +8,10 @@ import { PHASES } from './data.js';
 import api from '../api/api.js';
 import { updatePhaseBadge } from './header.js';
 import { showToast } from '../utils/toast.js';
-import { formatDateDisplay } from '../utils/date.js';
 
 export function renderProgression() {
   renderPhaseSelector();
   renderPhaseDetail();
-  renderHeatmap();
 }
 
 export function renderPhaseSelector() {
@@ -96,37 +95,4 @@ export function renderPhaseDetail() {
   `;
 }
 
-export function renderHeatmap() {
-  const grid = document.getElementById('heatmap-grid');
-  if (!grid) return;
 
-  grid.innerHTML = '';
-  const days = [];
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    days.push(`${y}-${m}-${day}`);
-  }
-
-  days.forEach(dateStr => {
-    const entry = STATE.history.find(h => h.date === dateStr);
-    const div = document.createElement('div');
-    div.className = 'heatmap-day';
-
-    if (entry) {
-      if (entry.showed === 'no') {
-        div.classList.add('showed-no');
-      } else if (entry.effort) {
-        div.classList.add(`effort-${entry.effort}`);
-      }
-      div.setAttribute('data-tip', `${formatDateDisplay(dateStr)} · Effort: ${entry.effort || '?'}/5`);
-    } else {
-      div.setAttribute('data-tip', formatDateDisplay(dateStr));
-    }
-
-    grid.appendChild(div);
-  });
-}

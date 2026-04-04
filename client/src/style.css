@@ -951,6 +951,69 @@ body {
 
 .empty-icon { font-size: 3rem; margin-bottom: 16px; }
 
+/* ── History Heatmap Section ── */
+.history-heatmap-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  margin-bottom: 24px;
+}
+
+.history-stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.history-stat-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 40px;
+  padding: 8px 16px;
+  flex: 1;
+  min-width: 160px;
+}
+
+.history-stat-flame { font-size: 1rem; }
+
+.history-stat-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  flex: 1;
+}
+
+.history-stat-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--accent-violet-light);
+}
+
+/* Future days in the heatmap — slightly more dim */
+.heatmap-day.future-day {
+  background: rgba(255,255,255,0.02);
+  opacity: 0.45;
+}
+
+/* Section title used inside history heatmap section */
+.history-heatmap-section .section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+
+
 /* ══════════════════════════════════════
    PROGRESSION VIEW
 ══════════════════════════════════════ */
