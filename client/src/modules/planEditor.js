@@ -12,7 +12,7 @@
  */
 
 import { BLOCKS } from './data.js';
-import { renderBlocks, updateMasterProgress } from './blocks.js';
+import { renderBlocks, updateMasterProgress, getTaskDesc, setTaskDesc } from './blocks.js';
 import { showToast } from '../utils/toast.js';
 
 const STORAGE_KEY = 'everyday_custom_plan';
@@ -217,21 +217,27 @@ function _buildEditCard(block, bi) {
 }
 
 function _buildTaskRow(task, bi, ti) {
+  const savedDesc = getTaskDesc(task.id);
   return `
     <div class="ie-task-row" data-bi="${bi}" data-ti="${ti}" id="ie-task-${bi}-${ti}">
-      <span class="ie-drag-handle" title="Reorder">⠿</span>
-      <input class="ie-task-input" data-bi="${bi}" data-ti="${ti}"
-             value="${_esc(task.label)}" placeholder="Task name" />
-      <label class="ie-essential-wrap" title="Mark as Essential">
-        <input type="checkbox" class="ie-essential-cb" data-bi="${bi}" data-ti="${ti}"
-               ${task.isCore ? 'checked' : ''} />
-        <span class="ie-essential-pill">Essential</span>
-      </label>
-      <button class="ie-remove-task-btn" data-bi="${bi}" data-ti="${ti}" title="Remove" type="button">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
+      <div class="ie-task-main">
+        <span class="ie-drag-handle" title="Reorder">⠿</span>
+        <input class="ie-task-input" data-bi="${bi}" data-ti="${ti}"
+               value="${_esc(task.label)}" placeholder="Task name" />
+        <label class="ie-essential-wrap" title="Mark as Essential">
+          <input type="checkbox" class="ie-essential-cb" data-bi="${bi}" data-ti="${ti}"
+                 ${task.isCore ? 'checked' : ''} />
+          <span class="ie-essential-pill">Essential</span>
+        </label>
+        <button class="ie-remove-task-btn" data-bi="${bi}" data-ti="${ti}" title="Remove" type="button">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <textarea class="ie-task-desc" data-bi="${bi}" data-ti="${ti}" data-taskid="${task.id}"
+        placeholder="Description / essence of this task (optional)…"
+        rows="2">${savedDesc}</textarea>
     </div>
   `;
 }
@@ -260,6 +266,16 @@ function _bindEditCardEvents(container) {
       const bi = +el.dataset.bi, ti = +el.dataset.ti;
       if (_draft[bi]?.tasks[ti]) _draft[bi].tasks[ti].label = el.value;
     };
+  });
+
+  // Task description textareas — auto-save to localStorage immediately
+  container.querySelectorAll('.ie-task-desc').forEach(ta => {
+    ta.addEventListener('input', () => {
+      const taskId = ta.dataset.taskid;
+      if (taskId) setTaskDesc(taskId, ta.value);
+    });
+    // Prevent click from bubbling
+    ta.addEventListener('click', e => e.stopPropagation());
   });
 
   // Essential checkboxes
