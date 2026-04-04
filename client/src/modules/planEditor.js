@@ -16,6 +16,8 @@ import { renderBlocks, updateMasterProgress } from './blocks.js';
 import { showToast } from '../utils/toast.js';
 
 const STORAGE_KEY = 'everyday_custom_plan';
+const PLAN_VERSION_KEY = 'everyday_plan_version';
+const PLAN_VERSION = 'v2'; // bump this whenever the default boilerplate changes
 
 // Working draft — populated when edit mode is entered
 let _draft = [];
@@ -34,6 +36,14 @@ const EMOJI_OPTIONS = [
 
 export function loadCustomPlan() {
   try {
+    // Version guard — if the boilerplate version changed, wipe stale saved plan
+    const savedVersion = localStorage.getItem(PLAN_VERSION_KEY);
+    if (savedVersion !== PLAN_VERSION) {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem(PLAN_VERSION_KEY, PLAN_VERSION);
+      return false; // use fresh default BLOCKS
+    }
+
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return false;
     const saved = JSON.parse(raw);
