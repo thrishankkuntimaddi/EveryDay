@@ -958,10 +958,25 @@ body {
   border-radius: var(--radius-lg);
   padding: 20px 22px 16px;
   margin-bottom: 24px;
-  /* Cell size token — change here to resize the whole graph */
-  --cell: 14px;
-  --cell-gap: 3px;
+  --cell:      14px;   /* cell size */
+  --cell-gap:   3px;   /* gap between cells within a month */
+  --month-sep: 16px;   /* wider gap column between month clusters */
+  --lbl-h:     20px;   /* height of month label row */
 }
+
+/* Month label items live IN the grid (row 1) */
+.gh-month-lbl-item {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  white-space: nowrap;
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 3px;
+  overflow: hidden;
+}
+
 
 /* ── LeetCode-style header ── */
 .gh-lc-header {
