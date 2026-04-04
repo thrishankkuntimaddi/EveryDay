@@ -161,6 +161,32 @@ function renderYearHeatmap() {
   container.innerHTML =
     `<svg viewBox="0 0 ${svgW} ${svgH}" width="${svgW}" class="hm-svg">${parts.join('')}</svg>`;
 
+  /* ── Year-range label ────────────────────────────────────────────── */
+  const rangeEl = document.getElementById('gh-year-range');
+  if (rangeEl) {
+    const wsMonth = MONTH_SHORT[windowStart.getMonth()];
+    const wsYear  = windowStart.getFullYear();
+    const teMonth = MONTH_SHORT[today.getMonth()];
+    const teYear  = today.getFullYear();
+    rangeEl.textContent = `${wsMonth} ${wsYear} – ${teMonth} ${teYear}`;
+  }
+
+  /* ── Debug: log per-month cell counts to console ─────────────────── */
+  if (import.meta.env.DEV) {
+    const monthDayCounts = new Map();
+    for (let w = 0; w < W; w++) {
+      for (let r = 0; r < 7; r++) {
+        const day = days[w * 7 + r];
+        if (day >= windowStart && day <= today) {
+          const key = `${MONTH_SHORT[day.getMonth()]} ${day.getFullYear()}`;
+          monthDayCounts.set(key, (monthDayCounts.get(key) || 0) + 1);
+        }
+      }
+    }
+    console.debug('[Heatmap] Days per month in window:');
+    monthDayCounts.forEach((count, key) => console.debug(`  ${key}: ${count} days`));
+  }
+
   /* ── Stats ───────────────────────────────────────────────────────── */
   const lcCount = document.getElementById('gh-lc-count');
   const lcTotal = document.getElementById('gh-lc-total');
