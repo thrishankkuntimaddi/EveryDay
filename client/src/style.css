@@ -412,6 +412,7 @@ body {
 .blocks-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  align-items: start;
   gap: 16px;
   margin-bottom: 28px;
 }
@@ -560,13 +561,8 @@ body {
   border-color: var(--border-subtle);
 }
 
-.task-item.minimum-only {
-  /* visible by default, hidden when minimum mode OFF and tagged minimum-only */
-}
-
-.task-item.non-minimum {
-  /* visible by default, hidden when minimum mode ON */
-}
+/* .task-item.minimum-only and .task-item.non-minimum visibility
+   is controlled inline via JS (style.display) in applyMinimumMode() */
 
 /* Custom Checkbox */
 .custom-checkbox {
