@@ -3,144 +3,134 @@ import { formatDateDisplay, escapeHtml } from '../utils/date.js';
 
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-function toDateStr(y, m1, d) {
-  return `${y}-${String(m1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-}
+function pad(n) { return String(n).padStart(2, '0'); }
+function toDateStr(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 
-// ── Rolling 365-day LeetCode-style heatmap ────────────────────────────────────
+// ── Rolling 365-day contribution heatmap ───────────────────────────────────────
+//
+//  Layout (CSS grid):
+//    Row 1          = month name labels
+//    Rows 2–8       = Sun, Mon, Tue, Wed, Thu, Fri, Sat  (one cell per day)
+//    Columns        = one per week (Monday=start of column?, NO — Sun=row2)
+//
+//  Every cell gets EXPLICIT gridColumn + gridRow so auto-flow never runs.
+//  Month labels live in row 1 at their week's column, text overflows right.
+//  The natural ~4–5 wide columns per month create the visual cluster gap.
+// ─────────────────────────────────────────────────────────────────────────────
+
 function renderYearHeatmap() {
   const grid     = document.getElementById('heatmap-grid');
   const scrollEl = document.getElementById('gh-scrollable');
   if (!grid) return;
 
-  const now      = new Date();
-  const today    = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayStr = toDateStr(today.getFullYear(), today.getMonth() + 1, today.getDate());
+  /* ── Date math ──────────────────────────────────────────────────────── */
+  const now   = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
+  // 365-day window: [windowStart … today]
   const windowStart = new Date(today);
-  windowStart.setDate(windowStart.getDate() - 364);
+  windowStart.setDate(today.getDate() - 364);
 
+  // Grid starts at the Sunday of windowStart's week
   const gridStart = new Date(windowStart);
-  gridStart.setDate(gridStart.getDate() - windowStart.getDay()); // back to Sunday
+  gridStart.setDate(windowStart.getDate() - windowStart.getDay()); // getDay()==0 → Sun
 
+  // Grid ends at the Saturday of today's week
   const gridEnd = new Date(today);
-  gridEnd.setDate(gridEnd.getDate() + (6 - today.getDay())); // forward to Saturday
+  gridEnd.setDate(today.getDate() + (6 - today.getDay()));
 
-  // Build flat cells[] — 7 per week column (Sun=0 … Sat=6)
-  const cells = [];
-  const cur = new Date(gridStart);
-  while (cur <= gridEnd) {
-    cells.push({
-      dateStr  : toDateStr(cur.getFullYear(), cur.getMonth() + 1, cur.getDate()),
-      inWindow : cur >= windowStart && cur <= today,
-    });
-    cur.setDate(cur.getDate() + 1);
+  /* ── Build flat day array (always a multiple of 7) ─────────────────── */
+  const days = [];
+  for (let d = new Date(gridStart); d <= gridEnd; d.setDate(d.getDate() + 1)) {
+    days.push(new Date(d));
   }
-  const numWeeks = cells.length / 7;
+  const numWeeks = days.length / 7; // guaranteed integer (Sun→Sat span)
 
-  // Group into weeks
-  const weeks = [];
-  for (let w = 0; w < numWeeks; w++) {
-    weeks.push(cells.slice(w * 7, (w + 1) * 7));
+  /* ── Set up grid ────────────────────────────────────────────────────── */
+  // Row 1 (height --lbl-h) = month labels
+  // Rows 2-8 (height --cell each) = Sun through Sat
+  grid.style.display             = 'grid';
+  grid.style.gridTemplateColumns = `repeat(${numWeeks}, var(--cell))`;
+  grid.style.gridTemplateRows    = `var(--lbl-h, 18px) repeat(7, var(--cell))`;
+  grid.style.columnGap           = 'var(--cell-gap)';
+  grid.style.rowGap              = 'var(--cell-gap)';
+  grid.innerHTML                 = '';
+
+  /* ── Month labels (grid row 1) ──────────────────────────────────────── */
+  // Rule A: label the month of the very first in-window day (no day-of-month filter)
+  // Rule B: label any month whose 1st day falls inside the window
+  // This ensures e.g. Apr shows even when Apr 1 is before the window start.
+
+  const labeledMonths = new Set(); // "YYYY-MM" keys to avoid duplicates
+
+  function addLabel(weekIdx, date) {
+    const key = `${date.getFullYear()}-${pad(date.getMonth() + 1)}`;
+    if (labeledMonths.has(key)) return;
+    labeledMonths.add(key);
+
+    const lbl = document.createElement('span');
+    lbl.className        = 'gh-month-lbl-item';
+    lbl.textContent      = MONTH_SHORT[date.getMonth()];
+    lbl.style.gridColumn = String(weekIdx + 1);
+    lbl.style.gridRow    = '1';
+    grid.appendChild(lbl);
   }
 
-  // ── Month boundaries ────────────────────────────────────────────────────────
-  // Rule 1: the very first in-window day's month → label at its week
-  // Rule 2: every subsequent day-1 that's in-window → label at that week
-  // This ensures even if Apr 1 is before window start, "Apr" still shows
-  const boundaries = []; // { wi, month, year }
-
-  // Rule 1 — first in-window month
+  // Rule A — first in-window month
+  let ruleADone = false;
   outer:
-  for (let wi = 0; wi < numWeeks; wi++) {
-    for (const { dateStr, inWindow } of weeks[wi]) {
-      if (!inWindow) continue;
-      const d = new Date(dateStr + 'T12:00:00');
-      boundaries.push({ wi, month: d.getMonth(), year: d.getFullYear() });
-      break outer;
-    }
-  }
-
-  // Rule 2 — day-1 of each subsequent month
-  for (let wi = 0; wi < numWeeks; wi++) {
-    for (const { dateStr, inWindow } of weeks[wi]) {
-      if (!inWindow) continue;
-      const d = new Date(dateStr + 'T12:00:00');
-      if (d.getDate() === 1) {
-        const dup = boundaries.find(b => b.month === d.getMonth() && b.year === d.getFullYear());
-        if (!dup) boundaries.push({ wi, month: d.getMonth(), year: d.getFullYear() });
+  for (let w = 0; w < numWeeks; w++) {
+    for (let r = 0; r < 7; r++) {
+      const day = days[w * 7 + r];
+      if (day >= windowStart && day <= today) {
+        addLabel(w, day);
+        ruleADone = true;
+        break outer;
       }
     }
   }
-  boundaries.sort((a, b) => a.wi - b.wi);
 
-  // ── Build explicit grid-template-columns ────────────────────────────────────
-  // Each week → var(--cell), separator before each boundary (except first col)
-  const colDefs    = [];
-  const weekColIdx = []; // weekIndex → 1-based CSS grid column
-  let colIdx = 1;
-
-  for (let wi = 0; wi < numWeeks; wi++) {
-    const isBoundary = boundaries.some(b => b.wi === wi);
-    if (isBoundary && wi > 0) {
-      colDefs.push('var(--month-sep)'); // wider gap between month clusters
-      colIdx++;
+  // Rule B — every day-1 in the window
+  for (let w = 0; w < numWeeks; w++) {
+    for (let r = 0; r < 7; r++) {
+      const day = days[w * 7 + r];
+      if (day >= windowStart && day <= today && day.getDate() === 1) {
+        addLabel(w, day);
+      }
     }
-    weekColIdx.push(colIdx);
-    colDefs.push('var(--cell)');
-    colIdx++;
   }
-  const totalCols = colIdx - 1;
 
-  // ── Set up the CSS grid ─────────────────────────────────────────────────────
-  // Row 1 = month labels (--lbl-h), rows 2-8 = Sun … Sat cells
-  grid.style.display             = 'grid';
-  grid.style.gridTemplateColumns = colDefs.join(' ');
-  grid.style.gridTemplateRows    = 'var(--lbl-h, 20px) repeat(7, var(--cell))';
-  grid.style.columnGap           = 'var(--cell-gap)';
-  grid.style.rowGap              = 'var(--cell-gap)';
-  grid.innerHTML = '';
-
-  // ── Month label cells (row 1) ────────────────────────────────────────────────
-  boundaries.forEach(({ wi, month }, i) => {
-    const startCol = weekColIdx[wi];
-    const nextWi   = i + 1 < boundaries.length ? boundaries[i + 1].wi : numWeeks;
-    // endCol = start of next month's separator (or past last col)
-    const endCol   = nextWi < numWeeks ? weekColIdx[nextWi] : totalCols + 1;
-
-    const lbl = document.createElement('span');
-    lbl.textContent      = MONTH_SHORT[month];
-    lbl.className        = 'gh-month-lbl-item';
-    lbl.style.gridColumn = `${startCol} / ${endCol}`;
-    lbl.style.gridRow    = '1';
-    grid.appendChild(lbl);
-  });
-
-  // ── Day cells (rows 2-8) ─────────────────────────────────────────────────────
-  // FIX: gridColumn + gridRow set BEFORE the inWindow check so empty cells also
-  // get explicit placement — preventing CSS auto-flow from misplacing them.
+  /* ── Day cells (grid rows 2–8) ──────────────────────────────────────── */
+  // r=0 → Sun → gridRow 2
+  // r=1 → Mon → gridRow 3
+  // ...
+  // r=6 → Sat → gridRow 8
   let showedCount = 0;
+  const todayStr = toDateStr(today);
 
-  for (let wi = 0; wi < numWeeks; wi++) {
-    const gc = weekColIdx[wi];
-    weeks[wi].forEach(({ dateStr, inWindow }, rowOff) => {
-      const div = document.createElement('div');
-      div.style.gridColumn = String(gc);          // ALWAYS explicit
-      div.style.gridRow    = String(rowOff + 2);  // row 1 = labels, rows 2-8 = days
+  for (let w = 0; w < numWeeks; w++) {
+    for (let r = 0; r < 7; r++) {
+      const day  = days[w * 7 + r];
+      const div  = document.createElement('div');
+
+      // ALWAYS set explicit placement — no auto-flow ever
+      div.style.gridColumn = String(w + 1);
+      div.style.gridRow    = String(r + 2);
+
+      const inWindow = day >= windowStart && day <= today;
 
       if (!inWindow) {
         div.className = 'heatmap-cell heatmap-cell--empty';
         grid.appendChild(div);
-        return;
+        continue;
       }
 
       div.className = 'heatmap-cell';
-      const cd      = new Date(dateStr + 'T12:00:00');
-      const isToday = dateStr === todayStr;
-      const entry   = STATE.history.find(h => h.date === dateStr);
-      const tip     = `${MONTH_SHORT[cd.getMonth()]} ${cd.getDate()}`;
+      const ds      = toDateStr(day);
+      const tip     = `${MONTH_SHORT[day.getMonth()]} ${day.getDate()}`;
+      const entry   = STATE.history.find(h => h.date === ds);
 
-      if (isToday) div.classList.add('heatmap-cell--today');
+      if (ds === todayStr) div.classList.add('heatmap-cell--today');
 
       if (entry) {
         if (entry.showed === 'no') {
@@ -155,29 +145,31 @@ function renderYearHeatmap() {
       } else {
         div.setAttribute('data-tip', tip);
       }
+
       grid.appendChild(div);
-    });
+    }
   }
 
-  // ── Stats ────────────────────────────────────────────────────────────────────
-  const lcCountEl = document.getElementById('gh-lc-count');
-  const lcTotalEl = document.getElementById('gh-lc-total');
-  if (lcCountEl) lcCountEl.textContent = String(showedCount);
-  if (lcTotalEl) lcTotalEl.textContent = String(showedCount);
+  /* ── Stats ──────────────────────────────────────────────────────────── */
+  const lcCount = document.getElementById('gh-lc-count');
+  const lcTotal = document.getElementById('gh-lc-total');
+  if (lcCount) lcCount.textContent = String(showedCount);
+  if (lcTotal) lcTotal.textContent = String(showedCount);
 
+  /* ── Scroll to today ────────────────────────────────────────────────── */
   if (scrollEl) requestAnimationFrame(() => { scrollEl.scrollLeft = scrollEl.scrollWidth; });
 }
 
-// ── Streak ───────────────────────────────────────────────────────────────────
+/* ── Streak ─────────────────────────────────────────────────────────────────── */
 function renderStreakPill() {
-  const count = STATE.streak?.count ?? 0;
-  const oldEl = document.getElementById('history-streak-val');
-  const lcEl  = document.getElementById('gh-lc-streak');
+  const count  = STATE.streak?.count ?? 0;
+  const oldEl  = document.getElementById('history-streak-val');
+  const lcEl   = document.getElementById('gh-lc-streak');
   if (oldEl) oldEl.textContent = `${count} days`;
   if (lcEl)  lcEl.textContent  = String(count);
 }
 
-// ── Entry cards ──────────────────────────────────────────────────────────────
+/* ── Entry cards ────────────────────────────────────────────────────────────── */
 function renderEntryCards() {
   const grid  = document.getElementById('history-grid');
   const empty = document.getElementById('history-empty');
@@ -187,18 +179,21 @@ function renderEntryCards() {
   STATE.history.forEach(e => { if (!byDate.has(e.date)) byDate.set(e.date, e); });
   const sorted = [...byDate.values()].sort((a, b) => b.date.localeCompare(a.date));
 
-  if (!sorted.length) { grid.innerHTML = ''; if (empty) empty.hidden = false; return; }
+  if (!sorted.length) {
+    grid.innerHTML = '';
+    if (empty) empty.hidden = false;
+    return;
+  }
   if (empty) empty.hidden = true;
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-
+  const todayStr = toDateStr(new Date());
   grid.innerHTML = sorted.map(entry => {
-    const stars   = Array.from({ length: 5 }, (_, i) =>
+    const stars = Array.from({ length: 5 }, (_, i) =>
       `<span class="history-star${i < entry.effort ? '' : ' empty'}">★</span>`).join('');
-    const showed  = entry.showed === 'yes'
+    const showed = entry.showed === 'yes'
       ? '<span class="showed-yes">✓ Showed up</span>'
       : '<span class="showed-no">✗ Didn\'t show</span>';
-    const done    = entry.tasksCompleted != null
+    const done = entry.tasksCompleted != null
       ? `<div class="history-completed">⚡ ${entry.tasksCompleted}% tasks done</div>` : '';
     const isToday = entry.date === todayStr;
     return `<div class="history-entry${isToday ? ' history-entry--today' : ''}">
