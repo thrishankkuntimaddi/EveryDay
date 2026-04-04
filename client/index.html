@@ -263,27 +263,17 @@
           <button class="settings-save-btn" id="save-identity">Save Identity</button>
         </div>
 
-        <div class="settings-card">
-          <h3 class="settings-card-title">Reminders</h3>
-          <div class="reminder-list" id="reminder-list">
-            <div class="reminder-item">
-              <label>🌅 Morning Start</label>
-              <input type="time" id="remind-morning" value="06:00" class="time-input" />
-            </div>
-            <div class="reminder-item">
-              <label>💼 Work Block 1</label>
-              <input type="time" id="remind-work1" value="09:00" class="time-input" />
-            </div>
-            <div class="reminder-item">
-              <label>🌆 Evening Block</label>
-              <input type="time" id="remind-evening" value="18:00" class="time-input" />
-            </div>
-            <div class="reminder-item">
-              <label>🌙 Night Reflection</label>
-              <input type="time" id="remind-night" value="22:00" class="time-input" />
-            </div>
+        <div class="settings-card reminders-card">
+          <div class="reminders-card-header">
+            <h3 class="settings-card-title">Block Reminders</h3>
+            <p class="reminders-sub">Get notified when each block starts. Toggle on/off per block.</p>
           </div>
-          <button class="settings-save-btn" id="save-reminders">Save Reminders</button>
+          <!-- Dynamically rendered from BLOCKS by settings.js -->
+          <div class="reminder-list" id="reminder-list"></div>
+          <button class="settings-save-btn" id="save-reminders">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Save Reminders
+          </button>
         </div>
 
         <div class="settings-card danger-zone">

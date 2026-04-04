@@ -1863,3 +1863,184 @@ body {
   box-shadow: 0 4px 16px rgba(16, 185, 129, 0.15);
 }
 
+/* ══════════════════════════════════════
+   SETTINGS — BLOCK REMINDERS
+══════════════════════════════════════ */
+
+/* Card header with subtitle */
+.reminders-card-header { margin-bottom: 18px; }
+.reminders-sub {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+/* Each reminder row */
+.reminder-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+  margin-bottom: 8px;
+}
+.reminder-row:last-child { margin-bottom: 0; }
+.reminder-row:hover { border-color: var(--border); background: rgba(255,255,255,0.04); }
+
+/* Dimmed state when disabled */
+.reminder-row--off {
+  opacity: 0.45;
+}
+
+.reminder-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.reminder-icon { font-size: 1.1rem; flex-shrink: 0; }
+.reminder-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Right-side controls: time picker + toggle */
+.reminder-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* 12-hour time picker group */
+.time-picker-12h {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  transition: border-color var(--transition);
+}
+.time-picker-12h:focus-within { border-color: rgba(124,58,237,0.45); }
+
+.tp-hour,
+.tp-min {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  padding: 1px 2px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.tp-hour { width: 34px; }
+.tp-min  { width: 34px; }
+
+/* Style dropdown options in dark context */
+.tp-hour option,
+.tp-min  option {
+  background: var(--bg-card-hover);
+  color: var(--text-primary);
+}
+
+.tp-colon {
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.82rem;
+  font-weight: 600;
+  user-select: none;
+}
+
+/* AM / PM toggle button */
+.tp-period {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 5px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: all var(--transition);
+}
+.tp-period.is-am {
+  color: var(--accent-cyan);
+  border-color: rgba(6,182,212,0.28);
+  background: rgba(6,182,212,0.08);
+}
+.tp-period.is-pm {
+  color: var(--accent-violet-light);
+  border-color: rgba(124,58,237,0.28);
+  background: rgba(124,58,237,0.08);
+}
+.tp-period:hover {
+  filter: brightness(1.25);
+}
+
+/* Reminder enable/disable mini toggle */
+.rem-toggle {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+.rem-toggle-cb { opacity: 0; width: 0; height: 0; position: absolute; }
+.rem-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px;
+  transition: all var(--transition);
+}
+.rem-toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  left: 2px;
+  top: 2px;
+  background: var(--text-muted);
+  border-radius: 50%;
+  transition: all var(--transition);
+}
+.rem-toggle-cb:checked + .rem-toggle-slider {
+  background: rgba(124,58,237,0.3);
+  border-color: var(--accent-violet);
+}
+.rem-toggle-cb:checked + .rem-toggle-slider::before {
+  transform: translateX(16px);
+  background: var(--accent-violet-light);
+  box-shadow: 0 0 6px rgba(124,58,237,0.5);
+}
+
+/* Danger zone card */
+.danger-zone .settings-card-title { color: var(--accent-rose); }
+
+/* ══════════════════════════════════════
+   RESPONSIVE — SETTINGS REMINDERS
+══════════════════════════════════════ */
+@media (max-width: 520px) {
+  .reminder-row { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .reminder-controls { width: 100%; justify-content: flex-end; }
+}
+
