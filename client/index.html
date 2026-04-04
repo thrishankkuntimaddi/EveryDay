@@ -118,11 +118,26 @@
     <div class="focus-content">
       <div class="focus-header">
         <h2 class="focus-block-title" id="focus-block-title">Morning Block</h2>
-        <button class="focus-exit-btn" id="focus-exit-btn" aria-label="Exit Focus Mode">Exit Focus</button>
+        <button class="focus-exit-btn" id="focus-exit-btn" aria-label="Exit Focus Mode">✕ Exit</button>
       </div>
       <div class="focus-tasks" id="focus-tasks"></div>
       <div class="focus-timer-wrapper">
-        <div class="focus-timer" id="focus-timer">25:00</div>
+        <!-- Timer ring -->
+        <div class="focus-ring-container">
+          <svg class="focus-ring-svg" width="140" height="140" viewBox="0 0 140 140">
+            <circle class="focus-ring-bg" cx="70" cy="70" r="54"/>
+            <circle class="focus-ring-fill" id="focus-timer-ring" cx="70" cy="70" r="54"
+              stroke-dasharray="339.29" stroke-dashoffset="0"
+              transform="rotate(-90 70 70)"/>
+          </svg>
+          <div class="focus-timer" id="focus-timer">25:00</div>
+        </div>
+        <!-- Timer duration input -->
+        <div class="focus-timer-duration">
+          <label class="focus-duration-label" for="focus-timer-input">Duration (min)</label>
+          <input type="number" id="focus-timer-input" class="focus-duration-input"
+                 value="25" min="1" max="120" aria-label="Timer duration in minutes" />
+        </div>
         <div class="focus-timer-controls">
           <button class="timer-btn" id="timer-start" aria-label="Start Timer">▶ Start</button>
           <button class="timer-btn secondary" id="timer-reset" aria-label="Reset Timer">↺ Reset</button>
@@ -201,6 +216,9 @@
         <!-- Lock overlay — shown until EOD is unlocked -->
         <div class="eod-lock-overlay" id="eod-lock-overlay" hidden></div>
         <div class="eod-body" id="eod-body">
+          <!-- Auto-suggestion badge -->
+          <div class="eod-suggestion-badge" id="eod-suggestion-badge" hidden></div>
+
           <div class="eod-field">
             <label class="eod-label">Did you show up today?</label>
             <div class="eod-options" id="eod-showed-up">
@@ -219,9 +237,23 @@
             </div>
           </div>
           <div class="eod-field">
-            <label class="eod-label" for="eod-notes">Reflection notes</label>
+            <label class="eod-label" for="eod-notes">Reflection notes <span class="eod-label-hint">(auto-suggested — edit freely)</span></label>
             <textarea class="eod-textarea" id="eod-notes" placeholder="What went well? What can improve? Any insight about today..." rows="3"></textarea>
           </div>
+
+          <!-- Plan for Tomorrow -->
+          <div class="eod-plan-tomorrow-section" id="eod-plan-tomorrow-section">
+            <div class="eod-plan-header">
+              <span class="eod-plan-icon">📅</span>
+              <div>
+                <div class="eod-plan-title">Plan for Tomorrow <span class="eod-plan-optional">(optional)</span></div>
+                <div class="eod-plan-desc">Pre-plan your focus. If skipped, tomorrow shows today's list unmarked.</div>
+              </div>
+            </div>
+            <textarea class="eod-textarea eod-plan-textarea" id="eod-plan-notes"
+              placeholder="e.g. Focus on DSA morning, submit job apps by 10AM, skip evening walk..." rows="2"></textarea>
+          </div>
+
           <button class="eod-submit-btn" id="eod-submit">Save Reflection</button>
         </div>
       </div>
@@ -325,9 +357,13 @@
 
         <div class="settings-card danger-zone">
           <h3 class="settings-card-title">Data</h3>
-          <p class="settings-desc">All your data is stored on the server. Export or clear it here.</p>
+          <p class="settings-desc">Export your full data as JSON, or import it to restore progress.</p>
           <div class="data-actions">
-            <button class="settings-export-btn" id="export-data">📤 Export Data</button>
+            <button class="settings-export-btn" id="export-data">📤 Export JSON</button>
+            <label class="settings-import-btn" for="import-data-file" title="Import from JSON backup">
+              📥 Import JSON
+              <input type="file" id="import-data-file" accept=".json" style="display:none;" />
+            </label>
             <button class="settings-danger-btn" id="reset-data">🗑 Reset All Data</button>
           </div>
         </div>

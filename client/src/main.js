@@ -15,6 +15,7 @@ import './style.css';
 import api, { checkServerAvailability, isServerAvailable } from './api/api.js';
 import { STATE } from './modules/state.js';
 import { showToast } from './utils/toast.js';
+import { todayKey } from './utils/date.js';
 
 import {
   renderBlocks,
@@ -32,12 +33,14 @@ import {
 
 import { BLOCKS } from './modules/data.js';
 import { loadCustomPlan, enterEditMode, saveEditMode, exitEditMode } from './modules/planEditor.js';
-import { renderEOD, attachEODListeners }         from './modules/eod.js';
+import { renderEOD, attachEODListeners, checkAndClearEODLock } from './modules/eod.js';
 import { renderHistory }                          from './modules/history.js';
 import { renderProgression }                      from './modules/progression.js';
 import { renderSettings, attachSettingsListeners } from './modules/settings.js';
-import { openFocusMode, closeFocusMode, startTimer, pauseTimer, resetTimer } from './modules/focusMode.js';
+import { openFocusMode, closeFocusMode, startTimer, pauseTimer, resetTimer, attachTimerInputListener } from './modules/focusMode.js';
 import { requestNotifications, scheduleReminders } from './modules/notifications.js';
+import { startBlockCountdowns } from './modules/blockTimer.js';
+import { initDragSort } from './modules/dragSort.js';
 
 // ── View Navigation ───────────────────────────────────────────────────────────
 
@@ -122,8 +125,14 @@ function attachGlobalListeners() {
   // EOD listeners
   attachEODListeners();
 
+  // Timer input listener (adjustable focus duration)
+  attachTimerInputListener();
+
   // Settings listeners
   attachSettingsListeners();
+
+  // Re-init drag sort whenever blocks are re-rendered
+  window.addEventListener('everyday:blocksRendered', () => initDragSort());
 }
 
 // ── Loading / Error UI ────────────────────────────────────────────────────────
@@ -209,6 +218,19 @@ async function boot() {
 
   showLoadingBanner(false);
 
+  // 3c. Restore EOD lock state from localStorage
+  const savedEodLock = localStorage.getItem('eodLocked');
+  if (savedEodLock && savedEodLock === todayKey()) {
+    // EOD was submitted today — check if 4AM has passed to unlock
+    checkAndClearEODLock();
+    if (new Date().getHours() < 4) {
+      STATE.eodLocked = true;
+    }
+  } else {
+    localStorage.removeItem('eodLocked');
+    STATE.eodLocked = false;
+  }
+
   // 3b. Load any user-customised plan from localStorage (overrides default BLOCKS)
   loadCustomPlan();
 
@@ -219,6 +241,9 @@ async function boot() {
   updateHeaderStreak();
   updatePhaseBadge();
   renderEOD();
+
+  // 4b. Init drag-and-drop reordering
+  initDragSort();
 
   // Sync toggle UI to match state (minimumMode defaults false, but be explicit)
   const minToggle = document.getElementById('min-mode-toggle');
@@ -235,6 +260,9 @@ async function boot() {
     STATE.notificationsEnabled = true;
     scheduleReminders();
   }
+
+  // 8. Start block countdown timers (live lock/unlock state)
+  startBlockCountdowns();
 
   console.log('[EveryDay] Booted. Phase:', STATE.phase, '| Streak:', STATE.streak.count);
 }

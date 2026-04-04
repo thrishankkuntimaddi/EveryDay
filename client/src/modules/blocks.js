@@ -8,29 +8,57 @@ import { BLOCKS } from './data.js';
 import api from '../api/api.js';
 import { showToast } from '../utils/toast.js';
 import { openFocusMode } from './focusMode.js';
+import { isBlockMarkable, getBlockStatus, getBlockRange } from './blockTimer.js';
 
 // ── Progress Calculations ────────────────────────────────────────────────────
 
+/**
+ * Count effective units for progress:
+ * - If a task has subTasks, each subtask is a unit (weighted).
+ * - Otherwise, the task itself is a unit.
+ */
 export function getOverallProgress() {
-  let total = 0, done = 0;
+  let totalWeight = 0, doneWeight = 0;
+
   BLOCKS.forEach(block => {
     block.tasks.forEach(task => {
       if (STATE.minimumMode && !task.isCore) return;
-      total++;
-      if (STATE.tasks[task.id]) done++;
+      if (task.subTasks && task.subTasks.length > 0) {
+        task.subTasks.forEach(st => {
+          const w = st.weight || 1;
+          totalWeight += w;
+          if (STATE.tasks[st.id]) doneWeight += w;
+        });
+      } else {
+        totalWeight += 1;
+        if (STATE.tasks[task.id]) doneWeight += 1;
+      }
     });
   });
-  return { total, done, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
+
+  const pct = totalWeight > 0 ? Math.round((doneWeight / totalWeight) * 100) : 0;
+  return { total: Math.ceil(totalWeight), done: Math.round(doneWeight), pct };
 }
 
 export function getBlockProgress(block) {
-  let total = 0, done = 0;
+  let totalWeight = 0, doneWeight = 0;
+
   block.tasks.forEach(task => {
     if (STATE.minimumMode && !task.isCore) return;
-    total++;
-    if (STATE.tasks[task.id]) done++;
+    if (task.subTasks && task.subTasks.length > 0) {
+      task.subTasks.forEach(st => {
+        const w = st.weight || 1;
+        totalWeight += w;
+        if (STATE.tasks[st.id]) doneWeight += w;
+      });
+    } else {
+      totalWeight += 1;
+      if (STATE.tasks[task.id]) doneWeight += 1;
+    }
   });
-  return { total, done, pct: total > 0 ? Math.round((done / total) * 100) : 0 };
+
+  const pct = totalWeight > 0 ? Math.round((doneWeight / totalWeight) * 100) : 0;
+  return { total: Math.ceil(totalWeight), done: Math.round(doneWeight), pct };
 }
 
 // ── Render ───────────────────────────────────────────────────────────────────
@@ -48,6 +76,9 @@ export function renderBlocks() {
     card.className = `block-card${isCompleted ? ' completed' : ''}`;
     card.id = `block-card-${block.id}`;
 
+    const status = getBlockStatus(block);
+    card.classList.add(`block-status-${status}`);
+
     card.innerHTML = `
       <div class="block-header" id="block-header-${block.id}"
            role="button" aria-expanded="false"
@@ -60,7 +91,10 @@ export function renderBlocks() {
           </div>
         </div>
         <div class="block-header-right">
-          <span class="block-pct">${pct}%</span>
+          <div class="block-header-meta">
+            <span class="block-countdown" id="block-cd-${block.id}">—</span>
+            <span class="block-pct">${pct}%</span>
+          </div>
           <svg class="block-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="6 9 12 15 18 9"/>
           </svg>
@@ -91,27 +125,78 @@ export function renderBlocks() {
   });
 
   attachBlockListeners();
+
+  // Signal other modules that blocks have been re-rendered
+  window.dispatchEvent(new CustomEvent('everyday:blocksRendered'));
 }
 
 function renderTaskList(block) {
+  const markable = isBlockMarkable(block);
+
   return block.tasks.map(task => {
-    const done = !!STATE.tasks[task.id];
+    const done     = !!STATE.tasks[task.id];
     const isHidden = STATE.minimumMode && !task.isCore;
+    const locked   = !markable;
     const badgeHtml = task.isCore
       ? '<span class="task-badge badge-min">Essential</span>'
       : '';
+    const lockHtml = locked
+      ? `<span class="task-lock-icon" title="Unlocks when block ends">🔒</span>`
+      : '';
+    const statusCls = locked ? ' task-locked' : '';
+
+    // Description button
+    const descBtn = task.description
+      ? `<button class="task-desc-btn" data-task="${task.id}" title="View description" aria-label="Task description">ℹ️</button>`
+      : '';
+
+    // Sub-tasks
+    let subTasksHtml = '';
+    if (task.subTasks && task.subTasks.length > 0) {
+      const subItems = task.subTasks.map(st => {
+        const stDone = !!STATE.tasks[st.id];
+        const weight = (st.weight || 1);
+        return `
+          <div class="subtask-item${stDone ? ' done' : ''}${locked ? ' task-locked' : ''}"
+               id="task-${st.id}"
+               data-task="${st.id}"
+               role="checkbox"
+               aria-checked="${stDone}"
+               tabindex="0">
+            <div class="custom-checkbox subtask-checkbox"></div>
+            <span class="task-label subtask-label">${st.label}</span>
+            <span class="subtask-weight">${weight}pts</span>
+          </div>
+        `;
+      }).join('');
+      subTasksHtml = `<div class="subtask-list" id="subtasks-${task.id}">${subItems}</div>`;
+    }
+
+    // Description panel
+    const descHtml = task.description
+      ? `<div class="task-desc-panel" id="desc-${task.id}" hidden>
+           <p class="task-desc-text">${task.description.replace(/\n/g, '<br>')}</p>
+         </div>`
+      : '';
 
     return `
-      <div class="task-item${done ? ' done' : ''}${isHidden ? ' hidden-task' : ''}"
-           id="task-${task.id}"
-           data-task="${task.id}"
-           role="checkbox"
-           aria-checked="${done}"
-           tabindex="0"
+      <div class="task-item-wrapper" id="task-wrapper-${task.id}"
            style="${isHidden ? 'display:none' : ''}">
-        <div class="custom-checkbox"></div>
-        <span class="task-label">${task.label}</span>
-        ${badgeHtml}
+        <div class="task-item${done ? ' done' : ''}${statusCls}"
+             id="task-${task.id}"
+             data-task="${task.id}"
+             data-locked="${locked}"
+             role="checkbox"
+             aria-checked="${done}"
+             tabindex="0">
+          <div class="custom-checkbox"></div>
+          <span class="task-label">${task.label}</span>
+          ${badgeHtml}
+          ${descBtn}
+          ${lockHtml}
+        </div>
+        ${descHtml}
+        ${subTasksHtml}
       </div>
     `;
   }).join('');
@@ -129,9 +214,36 @@ function attachBlockListeners() {
   });
 
   document.querySelectorAll('.task-item').forEach(item => {
+    item.addEventListener('click', e => {
+      // Don't toggle if clicking description button
+      if (e.target.closest('.task-desc-btn')) return;
+      toggleTask(item.dataset.task);
+    });
+    item.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTask(item.dataset.task); }
+    });
+  });
+
+  // Sub-task items
+  document.querySelectorAll('.subtask-item').forEach(item => {
     item.addEventListener('click', () => toggleTask(item.dataset.task));
     item.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleTask(item.dataset.task); }
+    });
+  });
+
+  // Description toggle buttons
+  document.querySelectorAll('.task-desc-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const taskId = btn.dataset.task;
+      const panel  = document.getElementById(`desc-${taskId}`);
+      if (panel) {
+        const isHidden = panel.hidden;
+        panel.hidden = !isHidden;
+        btn.classList.toggle('desc-btn-active', !isHidden === false);
+        btn.title = isHidden ? 'Hide description' : 'View description';
+      }
     });
   });
 
@@ -142,6 +254,7 @@ function attachBlockListeners() {
     });
   });
 }
+
 
 export function toggleBlock(blockId) {
   const card   = document.getElementById(`block-card-${blockId}`);
@@ -156,6 +269,22 @@ export function toggleBlock(blockId) {
 // ── Task Toggle (calls server) ────────────────────────────────────────────────
 
 export async function toggleTask(taskId) {
+  // Check if task is time-locked
+  const block = BLOCKS.find(b => b.tasks.some(t => t.id === taskId));
+  if (block && !isBlockMarkable(block)) {
+    const { endMin } = getBlockRange(block);
+    const h = Math.floor(endMin / 60).toString().padStart(2, '0');
+    const m = (endMin % 60).toString().padStart(2, '0');
+    showToast(`🔒 Tasks unlock after ${h}:${m}`, 'error');
+    return;
+  }
+
+  // Check if day is EOD-locked (after submission, before 4AM)
+  if (STATE.eodLocked) {
+    showToast('🔒 Day locked after reflection. Unlocks at 4:00 AM.', 'error');
+    return;
+  }
+
   // Optimistic update
   STATE.tasks[taskId] = !STATE.tasks[taskId];
 
@@ -165,7 +294,6 @@ export async function toggleTask(taskId) {
     item.setAttribute('aria-checked', STATE.tasks[taskId]);
   }
 
-  const block = BLOCKS.find(b => b.tasks.some(t => t.id === taskId));
   if (block) updateBlockProgress(block);
   updateMasterProgress();
 
@@ -246,14 +374,18 @@ export function updateMasterProgress() {
 export function applyMinimumMode() {
   BLOCKS.forEach(block => {
     block.tasks.forEach(task => {
-      const el = document.getElementById(`task-${task.id}`);
-      if (!el) return;
-      el.style.display = (STATE.minimumMode && !task.isCore) ? 'none' : '';
+      // Target the wrapper (which wraps item + desc + subtasks)
+      const wrapper = document.getElementById(`task-wrapper-${task.id}`);
+      const el      = document.getElementById(`task-${task.id}`);
+      const target  = wrapper || el;
+      if (!target) return;
+      target.style.display = (STATE.minimumMode && !task.isCore) ? 'none' : '';
     });
     updateBlockProgress(block);
   });
   updateMasterProgress();
 }
+
 
 export function openFirstBlock() {
   // Expand all blocks on load so the full day plan is visible

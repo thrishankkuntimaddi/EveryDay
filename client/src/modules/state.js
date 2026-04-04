@@ -22,6 +22,7 @@ export const STATE = {
   timerRunning: false,
   notificationsEnabled: false,
   eod: { showed: null, effort: 0, notes: '' },
+  eodLocked: false,     // true after EOD submission until 4AM next day
   isLoading: false,
   serverError: false,
 };

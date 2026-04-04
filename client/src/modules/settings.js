@@ -13,6 +13,7 @@ import { BLOCKS } from './data.js';
 import api         from '../api/api.js';
 import { showToast } from '../utils/toast.js';
 import { scheduleReminders } from './notifications.js';
+import { todayKey } from '../utils/date.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -161,14 +162,58 @@ export function attachSettingsListeners() {
     }
   });
 
-  // Export
-  document.getElementById('export-data')?.addEventListener('click', async () => {
+  // Export — full JSON download
+  document.getElementById('export-data')?.addEventListener('click', () => {
     try {
-      await api.data.export();
-      showToast('📤 Data exported!', 'success');
-    } catch {
-      showToast('⚠️ Export failed', 'error');
+      const exportPayload = {
+        exportedAt: new Date().toISOString(),
+        tasks:      STATE.tasks,
+        history:    STATE.history,
+        settings:   STATE.settings,
+        phase:      STATE.phase,
+        streak:     STATE.streak,
+        blocks:     JSON.parse(localStorage.getItem('everyday_custom_plan') || 'null'),
+      };
+      const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `everyday-backup-${todayKey()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast('📤 Data exported! File downloaded.', 'success');
+    } catch (err) {
+      showToast('⚠️ Export failed: ' + err.message, 'error');
     }
+  });
+
+  // Import — restore from JSON file
+  document.getElementById('import-data-file')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+
+      // Restore state
+      if (data.tasks)    STATE.tasks    = data.tasks;
+      if (data.history)  STATE.history  = data.history;
+      if (data.streak)   STATE.streak   = data.streak;
+      if (data.phase)    STATE.phase    = data.phase;
+      if (data.settings) STATE.settings = data.settings;
+
+      // Restore custom blocks if any
+      if (data.blocks && Array.isArray(data.blocks)) {
+        localStorage.setItem('everyday_custom_plan', JSON.stringify(data.blocks));
+      }
+
+      showToast('📥 Data imported! Refreshing...', 'success');
+      setTimeout(() => location.reload(), 1200);
+    } catch (err) {
+      showToast('⚠️ Import failed — invalid JSON file', 'error');
+    }
+    // Reset input so user can re-upload
+    e.target.value = '';
   });
 
   // Reset
