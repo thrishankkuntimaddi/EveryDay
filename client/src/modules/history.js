@@ -1,88 +1,82 @@
 /**
  * history.js — History view rendering.
  *
- * Renders:
- *  1. Streak + year activity stats pills
- *  2. GitHub-style FULL YEAR heatmap (Jan 1 → Dec 31 of current year)
- *     – week columns from left (Jan) to right (Dec)
- *     – month labels row at top, day-of-week labels on left
- *  3. Chronological EOD entry cards
+ * Heatmap = rolling last 365 days (today = rightmost column),
+ * exactly like GitHub's contribution graph.
  */
 
 import { STATE } from './state.js';
 import { formatDateDisplay, escapeHtml } from '../utils/date.js';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-
 const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun',
                      'Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function isLeapYear(y) {
-  return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0;
+function toDateStr(y, m1, d) {
+  return `${y}-${String(m1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 }
 
-function totalDaysInYear(y) {
-  return isLeapYear(y) ? 366 : 365;
-}
-
-function toDateStr(year, month1, day) {
-  return `${year}-${String(month1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-}
-
-// ── Full-Year GitHub-style Heatmap ────────────────────────────────────────────
+// ── Rolling 365-day GitHub-style heatmap ──────────────────────────────────────
 
 function renderYearHeatmap() {
-  const grid         = document.getElementById('heatmap-grid');
-  const monthLblEl  = document.getElementById('gh-month-labels');
-  const scrollEl    = document.getElementById('gh-scrollable');
+  const grid       = document.getElementById('heatmap-grid');
+  const monthLblEl = document.getElementById('gh-month-labels');
+  const scrollEl   = document.getElementById('gh-scrollable');
+  const contribEl  = document.getElementById('gh-contrib-count');
   if (!grid) return;
 
-  const now     = new Date();
-  const year    = now.getFullYear();                       // e.g. 2026
-  const totalDays = totalDaysInYear(year);
-  const todayMidnight = new Date(year, now.getMonth(), now.getDate());
-  const todayStr = now.toISOString().slice(0, 10);
+  const now   = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayStr = toDateStr(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
-  // Day-of-week the year starts on (0=Sun … 6=Sat)
-  const firstDow = new Date(year, 0, 1).getDay();
+  // 365-day window: 364 days ago → today (inclusive = 365 days)
+  const windowStart = new Date(today);
+  windowStart.setDate(windowStart.getDate() - 364);
 
-  // ── Build flat cells[] in ROW-MAJOR order ──
-  // With grid-auto-flow:column + 7 rows, the DOM order maps:
-  //   item[i] → col = ⌊i/7⌋, row = i%7
-  // So cells[0] = Sun of week 1, cells[1] = Mon of week 1, …
-  //    cells[7] = Sun of week 2, etc.
+  // Grid start = Sunday of the week that contains windowStart
+  const gridStart = new Date(windowStart);
+  gridStart.setDate(gridStart.getDate() - windowStart.getDay());
+
+  // Grid end = Saturday of today's week (so today is always in the last column)
+  const gridEnd = new Date(today);
+  gridEnd.setDate(gridEnd.getDate() + (6 - today.getDay()));
+
+  // Build flat cells[] in ROW-MAJOR order:
+  //   idx 0 = Sun of wk0, idx 1 = Mon of wk0 … idx 6 = Sat of wk0
+  //   idx 7 = Sun of wk1 … etc.
+  // (With grid-auto-flow:column + grid-template-rows:repeat(7,…) this maps
+  //  correctly — col = ⌊idx/7⌋, row = idx%7.)
   const cells = [];
-  for (let i = 0; i < firstDow; i++) cells.push(null);             // leading padding
-
-  for (let d = 0; d < totalDays; d++) {
-    const date = new Date(year, 0, d + 1);
-    cells.push(toDateStr(
-      date.getFullYear(),
-      date.getMonth() + 1,
-      date.getDate()
-    ));
+  const cur   = new Date(gridStart);
+  while (cur <= gridEnd) {
+    const dateStr   = toDateStr(cur.getFullYear(), cur.getMonth() + 1, cur.getDate());
+    const inWindow  = cur >= windowStart && cur <= today;
+    cells.push({ dateStr, inWindow });
+    cur.setDate(cur.getDate() + 1);
   }
-  while (cells.length % 7 !== 0) cells.push(null);                  // trailing padding
 
-  const numWeeks = cells.length / 7;
+  const numWeeks = cells.length / 7;   // always a whole number (we padded both ends)
 
-  // ── Month labels (one per week column) ──
-  // Build a numWeeks-length array: label string or empty
-  const weekLabels = new Array(numWeeks).fill('');
-  cells.forEach((dateStr, idx) => {
-    if (!dateStr) return;
-    const d = new Date(dateStr);
+  // ── Month labels ──────────────────────────────────────────────────────────
+  // One span per week-column. A label appears in the first column where that
+  // month's day-1 falls, but we skip labels that would be < 3 cols from the last.
+  const weekLabels   = new Array(numWeeks).fill('');
+  let   lastLabelCol = -5;
+
+  cells.forEach(({ dateStr, inWindow }, idx) => {
+    if (!inWindow) return;
+    const d = new Date(dateStr + 'T12:00:00');
     if (d.getDate() === 1) {
       const col = Math.floor(idx / 7);
-      weekLabels[col] = MONTH_SHORT[d.getMonth()];
+      if (col - lastLabelCol >= 3) {           // ≥3 weeks gap → no overlap
+        weekLabels[col] = MONTH_SHORT[d.getMonth()];
+        lastLabelCol = col;
+      }
     }
   });
 
   if (monthLblEl) {
     monthLblEl.style.gridTemplateColumns = `repeat(${numWeeks}, var(--cell))`;
-    monthLblEl.style.columnGap = 'var(--cell-gap)';
+    monthLblEl.style.columnGap           = 'var(--cell-gap)';
     monthLblEl.innerHTML = '';
     weekLabels.forEach(label => {
       const span = document.createElement('span');
@@ -91,37 +85,34 @@ function renderYearHeatmap() {
     });
   }
 
-  // ── Render cells ──
-  let yearShowedCount = 0;
-  grid.innerHTML = '';
+  // ── Cell grid ─────────────────────────────────────────────────────────────
+  let showedCount = 0;
+  grid.innerHTML  = '';
 
-  cells.forEach(dateStr => {
+  cells.forEach(({ dateStr, inWindow }) => {
     const div = document.createElement('div');
 
-    if (!dateStr) {
+    if (!inWindow) {
+      // Outside the 365-day window — transparent padding cell
       div.className = 'heatmap-cell heatmap-cell--empty';
       grid.appendChild(div);
       return;
     }
 
     div.className = 'heatmap-cell';
-    const cellDate = new Date(dateStr);
-    const isFuture  = cellDate > todayMidnight;
-    const isToday   = dateStr === todayStr;
-    const entry     = STATE.history.find(h => h.date === dateStr);
-    const dayLabel  = `${MONTH_SHORT[cellDate.getMonth()]} ${cellDate.getDate()}`;
+    const cellDate = new Date(dateStr + 'T12:00:00');
+    const isToday  = dateStr === todayStr;
+    const entry    = STATE.history.find(h => h.date === dateStr);
+    const dayLabel = `${MONTH_SHORT[cellDate.getMonth()]} ${cellDate.getDate()}`;
 
     if (isToday) div.classList.add('heatmap-cell--today');
 
-    if (isFuture) {
-      div.classList.add('heatmap-cell--future');
-      div.setAttribute('data-tip', dayLabel);
-    } else if (entry) {
+    if (entry) {
       if (entry.showed === 'no') {
         div.classList.add('heatmap-cell--miss');
         div.setAttribute('data-tip', `${dayLabel} · Missed`);
       } else {
-        yearShowedCount++;
+        showedCount++;
         const e = Math.min(Math.max(entry.effort || 1, 1), 5);
         div.classList.add(`heatmap-cell--e${e}`);
         div.setAttribute('data-tip', `${dayLabel} · Effort ${e}/5`);
@@ -133,28 +124,27 @@ function renderYearHeatmap() {
     grid.appendChild(div);
   });
 
-  // ── Update stats ──
+  // ── Update stat labels ────────────────────────────────────────────────────
   const monthValEl = document.getElementById('history-month-val');
   const monthLbEl  = document.getElementById('history-month-label');
-  if (monthValEl) monthValEl.textContent = `${yearShowedCount} days`;
-  if (monthLbEl)  monthLbEl.textContent  = `${year} Activity`;
+  if (monthValEl) monthValEl.textContent = `${showedCount} days`;
+  if (monthLbEl)  monthLbEl.textContent  = 'Last 365 days';
 
-  // ── Scroll to show today's column (on initial render) ──
+  // Top contributions line: "X days showed up in the last year"
+  if (contribEl) {
+    contribEl.textContent =
+      `${showedCount} day${showedCount !== 1 ? 's' : ''} showed up in the last year`;
+  }
+
+  // ── Scroll to rightmost (today's column) ─────────────────────────────────
   if (scrollEl) {
     requestAnimationFrame(() => {
-      // Find today's cell and scroll it into view horizontally
-      const todayCell = grid.querySelector('.heatmap-cell--today');
-      if (todayCell) {
-        const cellLeft   = todayCell.offsetLeft;
-        const viewWidth  = scrollEl.offsetWidth;
-        // Center today in the visible area
-        scrollEl.scrollLeft = Math.max(0, cellLeft - viewWidth / 2);
-      }
+      scrollEl.scrollLeft = scrollEl.scrollWidth;
     });
   }
 }
 
-// ── Streak ────────────────────────────────────────────────────────────────────
+// ── Streak pill ───────────────────────────────────────────────────────────────
 
 function renderStreakPill() {
   const el = document.getElementById('history-streak-val');
@@ -163,7 +153,7 @@ function renderStreakPill() {
   el.textContent = `${count} ${count === 1 ? 'day' : 'days'}`;
 }
 
-// ── Entry Cards ───────────────────────────────────────────────────────────────
+// ── EOD Entry cards ───────────────────────────────────────────────────────────
 
 function renderEntryCards() {
   const grid  = document.getElementById('history-grid');

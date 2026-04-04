@@ -963,6 +963,15 @@ body {
   --cell-gap: 3px;
 }
 
+/* ── "X days showed up in the last year" headline ── */
+.gh-contrib-count {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 14px;
+  letter-spacing: -0.01em;
+}
+
 .history-stats-row {
   display: flex;
   gap: 12px;
