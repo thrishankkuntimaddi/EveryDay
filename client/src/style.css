@@ -958,52 +958,16 @@ body {
   border-radius: var(--radius-lg);
   padding: 20px 22px 16px;
   margin-bottom: 24px;
-  --cell:      14px;   /* cell size */
-  --cell-gap:   3px;   /* gap between cells within a month */
-  --month-sep: 16px;   /* wider gap column between month clusters */
-  --lbl-h:     20px;   /* height of month label row */
 }
 
-/* ── Heat-map color tokens ── */
-.history-heatmap-section {
-  --heat-0:    rgba(255,255,255,0.07); /* no data */
-  --heat-miss: rgba(239,68,68,0.28);   /* missed day */
-  --heat-1:    rgba(109,40,217,0.28);  /* effort 1 */
-  --heat-2:    rgba(109,40,217,0.46);  /* effort 2 */
-  --heat-3:    rgba(109,40,217,0.64);  /* effort 3 */
-  --heat-4:    rgba(109,40,217,0.82);  /* effort 4 */
-  --heat-5:    rgba(109,40,217,1.00);  /* effort 5 */
-  --heat-ring: #a78bfa;                /* today outline */
-}
-
-/* SVG container */
-.hm-svg { display: block; }
-
-/* Cells */
-.hm-cell {
-  cursor: pointer;
-  transition: opacity 0.12s;
-}
-.hm-cell:hover { opacity: 0.7; }
-
-/* Month labels (SVG <text>) */
-.hm-label {
-  font-size: 10px;
-  fill: var(--text-muted);
-  font-family: 'Inter', sans-serif;
-  dominant-baseline: auto;
-}
-
-
-
-/* ── LeetCode-style header ── */
+/* ── Header row ── */
 .gh-lc-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .gh-lc-left {
@@ -1051,105 +1015,51 @@ body {
   line-height: 1;
 }
 
-/* ── Scrollable heatmap wrapper (no left column) ── */
+/* ── Year range label ── */
+.gh-heatmap-header-row {
+  margin-bottom: 10px;
+}
+
+.gh-year-range {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+}
+
+/* ── 30-day strip container ── */
 .gh-scroll-wrap {
-  overflow-x: auto;
-  overflow-y: hidden;
   width: 100%;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 4px;
-}
-
-.gh-scroll-wrap::-webkit-scrollbar          { height: 4px; }
-.gh-scroll-wrap::-webkit-scrollbar-track   { background: transparent; }
-.gh-scroll-wrap::-webkit-scrollbar-thumb   {
-  background: rgba(124,58,237,0.3);
-  border-radius: 2px;
-}
-.gh-scroll-wrap::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.55); }
-
-/* Day-of-week labels (Sun hidden / Mon / Wed / Fri) */
-.gh-day-labels {
-  display: grid;
-  grid-template-rows: repeat(7, var(--cell));
-  gap: var(--cell-gap);
-  padding-right: 6px;
-}
-
-.gh-day-labels span {
-  font-size: 0.62rem;
-  color: var(--text-muted);
-  text-align: right;
-  line-height: var(--cell);
-  height: var(--cell);
-  white-space: nowrap;
-  font-family: 'Inter', sans-serif;
-}
-
-/* Right column: month labels + cell grid, scrolls horizontally */
-.gh-right-col {
   overflow-x: auto;
-  overflow-y: hidden;
-  flex: 1;
-  -webkit-overflow-scrolling: touch;  /* smooth iOS scroll */
-  scroll-snap-type: none;
-  padding-bottom: 4px;
 }
 
-/* Thin scrollbar so it's visible but not ugly */
-.gh-right-col::-webkit-scrollbar          { height: 4px; }
-.gh-right-col::-webkit-scrollbar-track   { background: transparent; }
-.gh-right-col::-webkit-scrollbar-thumb   {
-  background: rgba(124,58,237,0.3);
-  border-radius: 2px;
-}
-.gh-right-col::-webkit-scrollbar-thumb:hover { background: rgba(124,58,237,0.55); }
-
-/* Month labels row — sits BELOW the cells grid */
-.gh-month-labels {
+.day-strip {
   display: flex;
+  gap: 5px;
   align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Individual day cells ── */
+.day-cell {
+  width: 22px;
   height: 22px;
-  margin-top: 5px;
-  overflow: visible;
-}
-
-.gh-month-labels span {
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  font-family: 'Inter', sans-serif;
-  white-space: nowrap;
-  overflow: visible;
-  line-height: 1;
-}
-
-/* Cell grid — fills column-by-column (week = column, day = row) */
-.gh-cells-grid {
-  display: grid;
-  grid-template-rows: repeat(7, var(--cell));
-  grid-auto-flow: column;
-  grid-auto-columns: var(--cell);
-  gap: var(--cell-gap);
-}
-
-/* ── Cells ── */
-.heatmap-cell {
-  width: var(--cell);
-  height: var(--cell);
-  border-radius: 2px;
+  border-radius: 4px;
   background: rgba(255,255,255,0.06);
   cursor: default;
-  position: relative;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
   flex-shrink: 0;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  position: relative;
 }
 
-.heatmap-cell:hover { transform: scale(1.35); z-index: 10; }
+.day-cell:hover {
+  transform: scale(1.3);
+  z-index: 5;
+}
 
-/* Tooltip on hover */
-.heatmap-cell:not(.heatmap-cell--empty):hover::after {
-  content: attr(data-tip);
+.day-cell:hover::after {
+  content: attr(title);
   position: absolute;
   bottom: calc(100% + 6px);
   left: 50%;
@@ -1167,44 +1077,32 @@ body {
   font-family: 'Inter', sans-serif;
 }
 
-/* Padding / empty cells */
-.heatmap-cell--empty {
-  background: transparent;
-  pointer-events: none;
-}
-
-/* Future days */
-.heatmap-cell--future {
-  background: rgba(255,255,255,0.025);
-  opacity: 0.45;
-}
-
-/* Today's cell — bright ring */
-.heatmap-cell--today {
+/* Today ring */
+.day-cell--today {
   outline: 1.5px solid rgba(124,58,237,0.85);
   outline-offset: 1px;
 }
 
-/* Missed day */
-.heatmap-cell--miss { background: rgba(244, 63, 94, 0.3); }
+/* Missed */
+.day-cell--miss { background: rgba(244, 63, 94, 0.35); }
 
-/* Effort intensity — violet scale */
-.heatmap-cell--e1 { background: rgba(124, 58, 237, 0.18); }
-.heatmap-cell--e2 { background: rgba(124, 58, 237, 0.36); }
-.heatmap-cell--e3 { background: rgba(124, 58, 237, 0.55); }
-.heatmap-cell--e4 { background: rgba(124, 58, 237, 0.75); }
-.heatmap-cell--e5 {
+/* Effort levels */
+.day-cell--e1 { background: rgba(124, 58, 237, 0.2); }
+.day-cell--e2 { background: rgba(124, 58, 237, 0.38); }
+.day-cell--e3 { background: rgba(124, 58, 237, 0.56); }
+.day-cell--e4 { background: rgba(124, 58, 237, 0.76); }
+.day-cell--e5 {
   background: var(--accent-violet);
-  box-shadow: 0 0 6px rgba(124,58,237,0.6);
+  box-shadow: 0 0 8px rgba(124,58,237,0.6);
 }
 
-/* ── Less → More legend ── */
+/* ── Legend ── */
 .gh-legend {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   justify-content: flex-end;
-  margin-top: 8px;
+  margin-top: 12px;
 }
 
 .gh-legend-text {
@@ -1223,30 +1121,20 @@ body {
 }
 
 .gh-legend-dot--none { background: rgba(255,255,255,0.06); }
-.gh-legend-dot--e1   { background: rgba(124, 58, 237, 0.18); }
-.gh-legend-dot--e2   { background: rgba(124, 58, 237, 0.36); }
-.gh-legend-dot--e3   { background: rgba(124, 58, 237, 0.55); }
+.gh-legend-dot--e1   { background: rgba(124, 58, 237, 0.2); }
+.gh-legend-dot--e2   { background: rgba(124, 58, 237, 0.38); }
+.gh-legend-dot--e3   { background: rgba(124, 58, 237, 0.56); }
 .gh-legend-dot--e5   { background: var(--accent-violet); }
 
-/* ── Mobile responsive ── */
+/* ── Mobile ── */
 @media (max-width: 640px) {
-  .history-heatmap-section {
-    --cell: 10px;
-    --cell-gap: 2px;
-    padding: 14px 12px 12px;
-  }
-  .gh-day-labels span    { font-size: 0.55rem; }
-  .gh-month-labels span  { font-size: 0.55rem; }
-  .gh-month-labels       { height: 18px; margin-top: 4px; }
-  .heatmap-cell:hover    { transform: scale(1.2); }
-  .gh-lc-count           { font-size: 1.1rem; }
-  .gh-lc-sub             { font-size: 0.78rem; }
-  .gh-lc-stat            { font-size: 0.73rem; }
-  .gh-lc-header          { flex-direction: column; align-items: flex-start; gap: 6px; }
-}
-
-@media (max-width: 400px) {
-  .history-heatmap-section { --cell: 9px; --cell-gap: 2px; }
+  .history-heatmap-section { padding: 14px 12px 12px; }
+  .day-cell { width: 18px; height: 18px; }
+  .day-strip { gap: 4px; }
+  .gh-lc-count { font-size: 1.1rem; }
+  .gh-lc-sub   { font-size: 0.78rem; }
+  .gh-lc-stat  { font-size: 0.73rem; }
+  .gh-lc-header { flex-direction: column; align-items: flex-start; gap: 6px; }
 }
 
 
