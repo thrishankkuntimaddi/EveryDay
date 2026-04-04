@@ -1580,9 +1580,6 @@ body {
   }
 }
 
-/* Hide mobile-nav-btn on desktop (fallback) */
-.mobile-nav-btn { display: none; }
-
 /* ── Animations ── */
 @keyframes pulseGlow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0.4); }
