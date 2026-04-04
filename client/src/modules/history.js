@@ -74,18 +74,28 @@ function renderYearHeatmap() {
   });
 
   if (monthLblEl) {
-    monthLblEl.style.display = 'grid';
-    monthLblEl.style.gridTemplateColumns = `repeat(${numWeeks}, var(--cell))`;
-    monthLblEl.style.columnGap = 'var(--cell-gap)';
+    monthLblEl.style.removeProperty('display');   // CSS handles display:flex
+    monthLblEl.style.removeProperty('gridTemplateColumns');
+    monthLblEl.style.removeProperty('columnGap');
     monthLblEl.innerHTML = '';
 
-    monthStarts.forEach(({ month, col }) => {
+    // Leading spacer if the first visible month doesn't start at column 0
+    const firstCol = monthStarts.length > 0 ? monthStarts[0].col : 0;
+    if (firstCol > 0) {
+      const spacer = document.createElement('span');
+      spacer.style.flexBasis = `calc(${firstCol} * (var(--cell) + var(--cell-gap)))`;
+      spacer.style.flexShrink = '0';
+      monthLblEl.appendChild(spacer);
+    }
+
+    monthStarts.forEach(({ month, col }, i) => {
+      const nextCol = i + 1 < monthStarts.length ? monthStarts[i + 1].col : numWeeks;
+      const widthCols = nextCol - col;
       const span = document.createElement('span');
       span.textContent = MONTH_SHORT[month];
-      // Position at the month's first week column — text overflows visually,
-      // and the empty grid columns before the next month create natural spacing.
-      span.style.gridColumnStart = String(col + 1);
-      // No gridColumnEnd → defaults to span 1 col; text overflows visibly
+      // Width = exact number of week-columns × (cell + gap) — scales with CSS vars
+      span.style.flexBasis = `calc(${widthCols} * (var(--cell) + var(--cell-gap)))`;
+      span.style.flexShrink = '0';
       monthLblEl.appendChild(span);
     });
   }

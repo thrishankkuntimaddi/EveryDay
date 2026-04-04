@@ -1076,12 +1076,11 @@ body {
 
 /* Month labels row — sits BELOW the cells grid */
 .gh-month-labels {
-  display: grid;
-  /* grid-template-columns + columnGap set dynamically by JS */
+  display: flex;
+  align-items: center;
   height: 22px;
   margin-top: 5px;
-  align-items: center;
-  overflow: visible;   /* let text overflow beyond single-column cell width */
+  overflow: visible;
 }
 
 .gh-month-labels span {
