@@ -1,18 +1,19 @@
 /**
- * dragSort.js — Drag-and-drop (desktop) + touch-drag (mobile) task reordering
+ * dragSort.js — Drag-and-drop (desktop) + touch-drag (mobile) task reordering.
  *
- * Works on any list with .task-item-wrapper elements inside a .task-list container.
- * On sort completion, the BLOCKS array is updated and persisted to localStorage.
+ * Desktop fix: uses mousedown on the handle to conditionally enable dragging.
+ * The HTML5 dragstart e.target is always the draggable element (wrapper),
+ * NOT the child that was clicked — so we track mousedown separately.
  */
 
 import { BLOCKS } from './data.js';
 
-const DRAG_HANDLE_CLASS = 'drag-handle';
-const DRAGGING_CLASS    = 'dragging';
-const DRAG_OVER_CLASS   = 'drag-over';
+const DRAGGING_CLASS  = 'dragging';
+const DRAG_OVER_CLASS = 'drag-over';
 
-let _dragSrc    = null;   // element being dragged
-let _dragBlockId = null;  // block the drag started in
+let _dragSrc     = null;
+let _dragBlockId = null;
+let _mouseOnHandle = false; // tracks whether mousedown was on a handle
 
 // ── Public init ───────────────────────────────────────────────────────────────
 
@@ -21,44 +22,59 @@ export function initDragSort() {
     const blockCard = list.closest('.block-card');
     if (!blockCard) return;
     const blockId = blockCard.id.replace('block-card-', '');
-    _addDragHandles(list, blockId);
-    _attachDragListeners(list, blockId);
-    _attachTouchListeners(list, blockId);
+    _injectHandles(list);
+    _bindDesktop(list, blockId);
+    _bindTouch(list, blockId);
   });
 }
 
-// ── Drag handles (desktop) ───────────────────────────────────────────────────
+// ── Inject grip handles ───────────────────────────────────────────────────────
 
-function _addDragHandles(list, blockId) {
+function _injectHandles(list) {
   list.querySelectorAll('.task-item-wrapper').forEach(wrapper => {
-    // Remove existing handle if any
-    const existing = wrapper.querySelector(`.${DRAG_HANDLE_CLASS}`);
-    if (existing) existing.remove();
+    // Avoid duplicate handles
+    if (wrapper.querySelector('.drag-handle')) return;
 
     const handle = document.createElement('div');
-    handle.className = DRAG_HANDLE_CLASS;
+    handle.className = 'drag-handle';
+    handle.setAttribute('title', 'Drag to reorder');
     handle.setAttribute('aria-label', 'Drag to reorder');
-    handle.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-      <circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/>
-      <circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/>
-      <circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/>
+    handle.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="9" cy="4" r="2"/><circle cx="15" cy="4" r="2"/>
+      <circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/>
+      <circle cx="9" cy="20" r="2"/><circle cx="15" cy="20" r="2"/>
     </svg>`;
 
-    // Insert handle as first child of the task-item inside wrapper
+    // Insert as first child inside the .task-item row
     const taskItem = wrapper.querySelector('.task-item');
     if (taskItem) taskItem.insertBefore(handle, taskItem.firstChild);
   });
 }
 
-// ── Desktop drag listeners ───────────────────────────────────────────────────
+// ── Desktop drag (HTML5 DnD) ──────────────────────────────────────────────────
 
-function _attachDragListeners(list, blockId) {
+function _bindDesktop(list, blockId) {
   list.querySelectorAll('.task-item-wrapper').forEach(wrapper => {
-    wrapper.setAttribute('draggable', 'true');
+    // Default: NOT draggable. Only enable when mousedown is on a handle.
+    wrapper.draggable = false;
+
+    // Track whether the user pressed down on the handle
+    const handle = wrapper.querySelector('.drag-handle');
+    if (handle) {
+      handle.addEventListener('mousedown', () => {
+        _mouseOnHandle = true;
+        wrapper.draggable = true;
+      });
+    }
+
+    // Reset draggable if mouse goes up anywhere without dragging
+    wrapper.addEventListener('mouseup', () => {
+      _mouseOnHandle = false;
+      wrapper.draggable = false;
+    });
 
     wrapper.addEventListener('dragstart', e => {
-      // Only start drag from handle
-      if (!e.target.closest(`.${DRAG_HANDLE_CLASS}`)) {
+      if (!_mouseOnHandle) {
         e.preventDefault();
         return;
       }
@@ -67,10 +83,13 @@ function _attachDragListeners(list, blockId) {
       wrapper.classList.add(DRAGGING_CLASS);
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', wrapper.id);
+      // Reset flag after drag begins
+      _mouseOnHandle = false;
     });
 
     wrapper.addEventListener('dragend', () => {
       wrapper.classList.remove(DRAGGING_CLASS);
+      wrapper.draggable = false;
       list.querySelectorAll(`.${DRAG_OVER_CLASS}`).forEach(el => el.classList.remove(DRAG_OVER_CLASS));
       _dragSrc = null;
     });
@@ -84,129 +103,133 @@ function _attachDragListeners(list, blockId) {
       }
     });
 
-    wrapper.addEventListener('dragleave', () => {
-      wrapper.classList.remove(DRAG_OVER_CLASS);
+    wrapper.addEventListener('dragleave', e => {
+      // Only remove if not entering a child
+      if (!wrapper.contains(e.relatedTarget)) {
+        wrapper.classList.remove(DRAG_OVER_CLASS);
+      }
     });
 
     wrapper.addEventListener('drop', e => {
       e.preventDefault();
       wrapper.classList.remove(DRAG_OVER_CLASS);
-      if (_dragSrc && _dragSrc !== wrapper && _dragBlockId === blockId) {
-        const wrappers = [...list.querySelectorAll('.task-item-wrapper')];
-        const fromIdx  = wrappers.indexOf(_dragSrc);
-        const toIdx    = wrappers.indexOf(wrapper);
+      if (!_dragSrc || _dragSrc === wrapper || _dragBlockId !== blockId) return;
 
-        // DOM reorder
-        if (fromIdx < toIdx) {
-          list.insertBefore(_dragSrc, wrapper.nextSibling);
-        } else {
-          list.insertBefore(_dragSrc, wrapper);
-        }
+      const wrappers = [...list.querySelectorAll('.task-item-wrapper')];
+      const fromIdx  = wrappers.indexOf(_dragSrc);
+      const toIdx    = wrappers.indexOf(wrapper);
+      if (fromIdx === -1 || toIdx === -1) return;
 
-        // Sync BLOCKS data
-        _reorderBlock(blockId, fromIdx, toIdx);
+      // DOM reorder
+      if (fromIdx < toIdx) {
+        list.insertBefore(_dragSrc, wrapper.nextSibling);
+      } else {
+        list.insertBefore(_dragSrc, wrapper);
       }
+
+      _reorderBlock(blockId, fromIdx, toIdx);
     });
   });
 }
 
-// ── Touch drag listeners (mobile) ────────────────────────────────────────────
+// ── Touch drag (mobile) ───────────────────────────────────────────────────────
 
-let _touchDragEl    = null;
-let _touchClone     = null;
-let _touchOffsetX   = 0;
-let _touchOffsetY   = 0;
-let _touchList      = null;
-let _touchBlockId   = null;
+let _touchEl    = null;
+let _touchClone = null;
+let _touchOX    = 0;
+let _touchOY    = 0;
+let _touchList  = null;
+let _touchBlock = null;
 
-function _attachTouchListeners(list, blockId) {
-  list.querySelectorAll(`.${DRAG_HANDLE_CLASS}`).forEach(handle => {
+function _bindTouch(list, blockId) {
+  list.querySelectorAll('.drag-handle').forEach(handle => {
     handle.addEventListener('touchstart', e => {
       const wrapper = handle.closest('.task-item-wrapper');
       if (!wrapper) return;
 
-      _touchList    = list;
-      _touchBlockId = blockId;
-      _touchDragEl  = wrapper;
+      _touchEl    = wrapper;
+      _touchList  = list;
+      _touchBlock = blockId;
 
       const rect = wrapper.getBoundingClientRect();
-      _touchOffsetX = e.touches[0].clientX - rect.left;
-      _touchOffsetY = e.touches[0].clientY - rect.top;
+      _touchOX = e.touches[0].clientX - rect.left;
+      _touchOY = e.touches[0].clientY - rect.top;
 
-      // Create floating clone
+      // Build a floating clone
       _touchClone = wrapper.cloneNode(true);
-      _touchClone.className += ' drag-touch-clone';
-      _touchClone.style.cssText = `
-        position: fixed;
-        width: ${rect.width}px;
-        left: ${rect.left}px;
-        top: ${rect.top}px;
-        z-index: 9999;
-        pointer-events: none;
-        opacity: 0.85;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-      `;
+      Object.assign(_touchClone.style, {
+        position:      'fixed',
+        width:         `${rect.width}px`,
+        left:          `${rect.left}px`,
+        top:           `${rect.top}px`,
+        zIndex:        '9999',
+        pointerEvents: 'none',
+        opacity:       '0.88',
+        boxShadow:     '0 8px 32px rgba(0,0,0,0.55)',
+        borderRadius:  '8px',
+        transition:    'none',
+      });
       document.body.appendChild(_touchClone);
-      wrapper.style.opacity = '0.3';
+      wrapper.style.opacity = '0.25';
     }, { passive: true });
 
     handle.addEventListener('touchmove', e => {
-      e.preventDefault();
+      e.preventDefault(); // prevent page scroll during drag
       if (!_touchClone) return;
 
-      const touch = e.touches[0];
-      _touchClone.style.left = `${touch.clientX - _touchOffsetX}px`;
-      _touchClone.style.top  = `${touch.clientY - _touchOffsetY}px`;
+      const t = e.touches[0];
+      _touchClone.style.left = `${t.clientX - _touchOX}px`;
+      _touchClone.style.top  = `${t.clientY - _touchOY}px`;
 
-      // Find target wrapper under touch
+      // Detect wrapper under finger
       _touchClone.style.display = 'none';
-      const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+      const under = document.elementFromPoint(t.clientX, t.clientY);
       _touchClone.style.display = '';
 
-      const targetWrapper = elUnder?.closest('.task-item-wrapper');
+      const target = under?.closest('.task-item-wrapper');
       _touchList.querySelectorAll(`.${DRAG_OVER_CLASS}`).forEach(el => el.classList.remove(DRAG_OVER_CLASS));
-      if (targetWrapper && targetWrapper !== _touchDragEl && _touchList.contains(targetWrapper)) {
-        targetWrapper.classList.add(DRAG_OVER_CLASS);
+      if (target && target !== _touchEl && _touchList.contains(target)) {
+        target.classList.add(DRAG_OVER_CLASS);
       }
     }, { passive: false });
 
     handle.addEventListener('touchend', e => {
       if (!_touchClone) return;
 
-      const touch = e.changedTouches[0];
+      const t = e.changedTouches[0];
       _touchClone.style.display = 'none';
-      const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+      const under = document.elementFromPoint(t.clientX, t.clientY);
       _touchClone.style.display = '';
 
-      const targetWrapper = elUnder?.closest('.task-item-wrapper');
-
-      if (targetWrapper && targetWrapper !== _touchDragEl && _touchList?.contains(targetWrapper)) {
+      const target = under?.closest('.task-item-wrapper');
+      if (target && target !== _touchEl && _touchList?.contains(target)) {
         const wrappers = [..._touchList.querySelectorAll('.task-item-wrapper')];
-        const fromIdx  = wrappers.indexOf(_touchDragEl);
-        const toIdx    = wrappers.indexOf(targetWrapper);
-
-        if (fromIdx < toIdx) {
-          _touchList.insertBefore(_touchDragEl, targetWrapper.nextSibling);
-        } else {
-          _touchList.insertBefore(_touchDragEl, targetWrapper);
+        const fromIdx  = wrappers.indexOf(_touchEl);
+        const toIdx    = wrappers.indexOf(target);
+        if (fromIdx !== -1 && toIdx !== -1) {
+          if (fromIdx < toIdx) {
+            _touchList.insertBefore(_touchEl, target.nextSibling);
+          } else {
+            _touchList.insertBefore(_touchEl, target);
+          }
+          _reorderBlock(_touchBlock, fromIdx, toIdx);
         }
-
-        _reorderBlock(_touchBlockId, fromIdx, toIdx);
       }
 
       // Cleanup
       _touchClone.remove();
       _touchClone = null;
-      if (_touchDragEl) { _touchDragEl.style.opacity = ''; }
-      _touchList.querySelectorAll(`.${DRAG_OVER_CLASS}`).forEach(el => el.classList.remove(DRAG_OVER_CLASS));
-      _touchDragEl = null;
+      if (_touchEl) _touchEl.style.opacity = '';
+      _touchList?.querySelectorAll(`.${DRAG_OVER_CLASS}`).forEach(el => el.classList.remove(DRAG_OVER_CLASS));
+      _touchEl = null;
     }, { passive: true });
   });
 }
 
-// ── BLOCKS reorder sync ───────────────────────────────────────────────────────
+// ── Sync BLOCKS data ──────────────────────────────────────────────────────────
 
 function _reorderBlock(blockId, fromIdx, toIdx) {
+  if (fromIdx === toIdx) return;
   const block = BLOCKS.find(b => b.id === blockId);
   if (!block) return;
 
@@ -214,7 +237,6 @@ function _reorderBlock(blockId, fromIdx, toIdx) {
   const [moved] = tasks.splice(fromIdx, 1);
   tasks.splice(toIdx, 0, moved);
 
-  // Persist to localStorage (via planEditor's storage key)
   try {
     localStorage.setItem('everyday_custom_plan', JSON.stringify(BLOCKS));
   } catch {}
