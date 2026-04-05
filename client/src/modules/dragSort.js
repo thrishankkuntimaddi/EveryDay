@@ -58,7 +58,6 @@ function _bindDesktop(list, blockId) {
     // Default: NOT draggable. Only enable when mousedown is on a handle.
     wrapper.draggable = false;
 
-    // Track whether the user pressed down on the handle
     const handle = wrapper.querySelector('.drag-handle');
     if (handle) {
       handle.addEventListener('mousedown', () => {
@@ -67,10 +66,13 @@ function _bindDesktop(list, blockId) {
       });
     }
 
-    // Reset draggable if mouse goes up anywhere without dragging
+    // Only reset draggable if we NEVER started a drag from this mousedown
     wrapper.addEventListener('mouseup', () => {
-      _mouseOnHandle = false;
-      wrapper.draggable = false;
+      if (!_dragSrc) {
+        // dragstart never fired — safe to reset
+        _mouseOnHandle = false;
+        wrapper.draggable = false;
+      }
     });
 
     wrapper.addEventListener('dragstart', e => {

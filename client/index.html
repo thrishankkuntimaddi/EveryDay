@@ -117,32 +117,17 @@
   <div class="focus-overlay" id="focus-overlay" hidden>
     <div class="focus-content">
       <div class="focus-header">
-        <h2 class="focus-block-title" id="focus-block-title">Morning Block</h2>
-        <button class="focus-exit-btn" id="focus-exit-btn" aria-label="Exit Focus Mode">✕ Exit</button>
+        <h2 class="focus-block-title" id="focus-block-title">Focus Mode</h2>
+        <button class="focus-exit-btn" id="focus-exit-btn" aria-label="Exit Focus Mode">
+          ✕ Exit <span class="focus-esc-hint">Esc</span>
+        </button>
       </div>
+
+      <!-- Task list (rendered by JS) -->
       <div class="focus-tasks" id="focus-tasks"></div>
-      <div class="focus-timer-wrapper">
-        <!-- Timer ring -->
-        <div class="focus-ring-container">
-          <svg class="focus-ring-svg" width="140" height="140" viewBox="0 0 140 140">
-            <circle class="focus-ring-bg" cx="70" cy="70" r="54"/>
-            <circle class="focus-ring-fill" id="focus-timer-ring" cx="70" cy="70" r="54"
-              stroke-dasharray="339.29" stroke-dashoffset="0"
-              transform="rotate(-90 70 70)"/>
-          </svg>
-          <div class="focus-timer" id="focus-timer">25:00</div>
-        </div>
-        <!-- Timer duration input -->
-        <div class="focus-timer-duration">
-          <label class="focus-duration-label" for="focus-timer-input">Duration (min)</label>
-          <input type="number" id="focus-timer-input" class="focus-duration-input"
-                 value="25" min="1" max="120" aria-label="Timer duration in minutes" />
-        </div>
-        <div class="focus-timer-controls">
-          <button class="timer-btn" id="timer-start" aria-label="Start Timer">▶ Start</button>
-          <button class="timer-btn secondary" id="timer-reset" aria-label="Reset Timer">↺ Reset</button>
-        </div>
-      </div>
+
+      <!-- Countdown section (fully rendered by JS into this mount point) -->
+      <div id="focus-timer-wrap" class="focus-timer-wrap"></div>
     </div>
   </div>
 
@@ -283,7 +268,7 @@
         <div class="gh-lc-header">
           <div class="gh-lc-left">
             <strong class="gh-lc-count" id="gh-lc-count">0</strong>
-            <span class="gh-lc-sub"> days showed up in the last 30 days</span>
+            <span class="gh-lc-sub"> days active in the past year</span>
           </div>
           <div class="gh-lc-right">
             <span class="gh-lc-stat">Total active days: <strong id="gh-lc-total">0</strong></span>
@@ -292,12 +277,13 @@
           </div>
         </div>
 
-        <!-- Heatmap grid (no day labels — exactly like LeetCode) -->
+        <!-- Calendar heatmap: week columns × 7 day-of-week rows -->
         <div class="gh-heatmap-header-row">
           <span class="gh-year-range" id="gh-year-range"></span>
         </div>
         <div class="gh-scroll-wrap" id="gh-scrollable">
-          <div class="gh-cells-grid" id="heatmap-grid"></div>
+          <!-- hm-root is injected by JS; #heatmap-grid is the mount point -->
+          <div id="heatmap-grid"></div>
         </div>
 
         <!-- Legend -->

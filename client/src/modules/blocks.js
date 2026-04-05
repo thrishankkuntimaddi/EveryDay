@@ -163,18 +163,19 @@ export function renderBlocks() {
 // ── Task List Renderer ────────────────────────────────────────────────────────
 
 function renderTaskList(block) {
-  const markable = isBlockMarkable(block);
+  const status   = getBlockStatus(block);
+  // Tasks are locked (can't be marked) only while the block is upcoming or active
+  const locked   = (status === 'upcoming' || status === 'active');
 
   return block.tasks.map(task => {
     const done     = !!STATE.tasks[task.id];
     const isHidden = STATE.minimumMode && !task.isCore;
-    const locked   = !markable;
 
     const badgeHtml = task.isCore
       ? '<span class="task-badge badge-min">Essential</span>'
       : '';
     const lockHtml = locked
-      ? `<span class="task-lock-icon" title="Unlocks when block ends">🔒</span>`
+      ? `<span class="task-lock-icon" title="${status === 'upcoming' ? 'Block hasn\'t started yet' : 'Mark after block ends'}">🔒</span>`
       : '';
     const statusCls = locked ? ' task-locked' : '';
 
@@ -354,15 +355,13 @@ export async function toggleTask(taskId) {
       const m = (startMin % 60).toString().padStart(2, '0');
       const p = startMin < 720 ? 'AM' : 'PM';
       showToast(`🔒 Block hasn't started yet. Begins at ${h}:${m} ${p}`, 'error');
-    } else if (blockStatus === 'active') {
+    } else {
+      // Active block — you're currently executing it
       const { endMin } = getBlockRange(block);
       const h = Math.floor(endMin / 60) % 12 || 12;
       const m = (endMin % 60).toString().padStart(2, '0');
       const p = endMin < 720 ? 'AM' : 'PM';
-      showToast(`⏳ Block in progress — reflect & mark after ${h}:${m} ${p}`, 'error');
-    } else {
-      // past but reflection window closed (next block started)
-      showToast('🔒 Reflection window closed. This block is permanently locked.', 'error');
+      showToast(`⏳ Block in progress — mark tasks after ${h}:${m} ${p}`, 'error');
     }
     return;
   }
@@ -373,19 +372,53 @@ export async function toggleTask(taskId) {
     return;
   }
 
-  // Optimistic UI update
-  STATE.tasks[taskId] = !STATE.tasks[taskId];
+  // ── Determine if this is a parent task or a subtask ──────────────────────
+  const parentTask = block?.tasks.find(t => t.id === taskId);
+  const isParent   = !!parentTask;
+  const ownerTask  = isParent ? null : block?.tasks.find(
+    t => t.subTasks && t.subTasks.some(st => st.id === taskId)
+  );
+
+  // ── Optimistic UI update ─────────────────────────────────────────────────
+  const newVal = !STATE.tasks[taskId];
+  STATE.tasks[taskId] = newVal;
 
   const item = document.getElementById(`task-${taskId}`);
   if (item) {
-    item.classList.toggle('done', STATE.tasks[taskId]);
-    item.setAttribute('aria-checked', STATE.tasks[taskId]);
+    item.classList.toggle('done', newVal);
+    item.setAttribute('aria-checked', newVal);
+  }
+
+  // IDs to also persist to server (parent + any cascaded subtasks)
+  const extraToggles = []; // { id, val }
+
+  if (isParent && parentTask.subTasks && parentTask.subTasks.length > 0) {
+    // ── Parent toggled → cascade to ALL subtasks ──────────────────────────
+    for (const st of parentTask.subTasks) {
+      STATE.tasks[st.id] = newVal;
+      const stEl = document.getElementById(`task-${st.id}`);
+      if (stEl) {
+        stEl.classList.toggle('done', newVal);
+        stEl.setAttribute('aria-checked', newVal);
+      }
+      extraToggles.push({ id: st.id, val: newVal });
+    }
+  } else if (!isParent && ownerTask) {
+    // ── Subtask toggled → update parent based on sibling state ────────────
+    const allDone = ownerTask.subTasks.every(st => !!STATE.tasks[st.id]);
+    STATE.tasks[ownerTask.id] = allDone;
+    const parentEl = document.getElementById(`task-${ownerTask.id}`);
+    if (parentEl) {
+      parentEl.classList.toggle('done', allDone);
+      parentEl.setAttribute('aria-checked', allDone);
+    }
+    extraToggles.push({ id: ownerTask.id, val: allDone });
   }
 
   if (block) updateBlockProgress(block);
   updateMasterProgress();
 
-  if (STATE.tasks[taskId]) {
+  if (newVal) {
     item?.animate([
       { transform: 'scale(1)' },
       { transform: 'scale(1.03)' },
@@ -393,20 +426,34 @@ export async function toggleTask(taskId) {
     ], { duration: 200, easing: 'ease-out' });
   }
 
-  // Persist to server
-  try {
-    await api.tasks.toggle(taskId, STATE.tasks[taskId]);
-  } catch {
-    STATE.tasks[taskId] = !STATE.tasks[taskId];
+  // ── Persist to server ────────────────────────────────────────────────────
+  const rollback = () => {
+    STATE.tasks[taskId] = !newVal;
     if (item) {
-      item.classList.toggle('done', STATE.tasks[taskId]);
-      item.setAttribute('aria-checked', STATE.tasks[taskId]);
+      item.classList.toggle('done', !newVal);
+      item.setAttribute('aria-checked', !newVal);
+    }
+    for (const { id, val } of extraToggles) {
+      STATE.tasks[id] = !val;
+      const el = document.getElementById(`task-${id}`);
+      if (el) { el.classList.toggle('done', !val); el.setAttribute('aria-checked', !val); }
     }
     if (block) updateBlockProgress(block);
     updateMasterProgress();
     showToast('⚠️ Failed to save — check server connection', 'error');
+  };
+
+  try {
+    await api.tasks.toggle(taskId, newVal);
+    // Persist cascaded subtask/parent changes
+    for (const { id, val } of extraToggles) {
+      try { await api.tasks.toggle(id, val); } catch { /* best-effort */ }
+    }
+  } catch {
+    rollback();
   }
 }
+
 
 // ── Progress Updates ──────────────────────────────────────────────────────────
 
