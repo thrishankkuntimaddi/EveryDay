@@ -59,10 +59,11 @@ function getDateKey(date) {
 }
 
 function getColor(count) {
-  if (!count)    return 'hm-l0';  // #2a2a2a equivalent
-  if (count < 3) return 'hm-l1';  // light violet
-  if (count < 6) return 'hm-l2';  // medium violet
-  return             'hm-l3';     // bright violet
+  if (!count)    return 'hm-l0';  // #161b22 — empty
+  if (count < 2) return 'hm-l1';  // #6b46c1 — effort 1
+  if (count < 4) return 'hm-l2';  // #9333ea — effort 2-3
+  if (count < 6) return 'hm-l3';  // #a855f7 — effort 4-5
+  return             'hm-l4';     // #c084fc — effort 6+ (future-proof)
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -145,9 +146,9 @@ function renderCalendarHeatmap() {
   // ── Month labels ─────────────────────────────────────────────────────────────
   const monthLabels = buildMonthLabels(weeks);
 
-  // ── Layout constants ─────────────────────────────────────────────────────────
-  const CELL  = 13;  // px — cell width & height
-  const GAP   =  3;  // px — gap between cells and weeks
+  // ── Layout constants — match React component: w-[12px] gap-[4px] ────────────
+  const CELL = 12;  // px — matches w-[12px]
+  const GAP  =  4;  // px — matches gap-[4px]
 
   // Month label row: one div per week column (SAME flex structure as grid)
   // Only the column where the month changes gets text — no pixel math.
@@ -173,12 +174,12 @@ function renderCalendarHeatmap() {
       const colorClass = isMiss ? 'hm-miss' : getColor(count);
       const todayCls   = isToday ? ' hm-today' : '';
 
-      // Tooltip: "April 3, 2026 — 3 activities"
-      const friendly  = `${MONTH_FULL[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+      // Tooltip: matches React component — date.toDateString() + activity count
+      const friendly  = date.toDateString(); // e.g. "Sun Apr 05 2026"
       const countText = isMiss
         ? 'missed day'
         : count > 0
-          ? `effort ${count}/5`
+          ? `${count} ${count === 1 ? 'activity' : 'activities'}`
           : 'no activity';
 
       return `<div class="hm-cell ${colorClass}${todayCls}" title="${friendly} — ${countText}" data-date="${key}"></div>`;

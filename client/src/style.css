@@ -1492,12 +1492,13 @@ body {
 
 /* ── Individual heatmap cells ── */
 .hm-cell {
-  width: var(--hm-cell, 13px);
-  height: var(--hm-cell, 13px);
-  border-radius: 2px;
+  width: var(--hm-cell, 12px);
+  height: var(--hm-cell, 12px);
+  border-radius: 3px;            /* rounded-sm equivalent */
   flex-shrink: 0;
   position: relative;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  /* match React: transition for scale */
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
   cursor: default;
 }
 
@@ -1508,49 +1509,64 @@ body {
   pointer-events: none;
 }
 
+/* ── Exact hex colors from provided React component ── */
+
 /* Level 0 = no activity */
-.hm-l0  { background: rgba(255,255,255,0.07); }
+.hm-l0  { background: #161b22; }
 
-/* Active levels — violet gradient matching app accent */
-.hm-l1  { background: rgba(124, 58, 237, 0.22); }
-.hm-l2  { background: rgba(124, 58, 237, 0.42); }
-.hm-l3  { background: rgba(124, 58, 237, 0.65); }
-.hm-l4  { background: var(--accent-violet); box-shadow: 0 0 6px rgba(124,58,237,0.55); }
+/* Active levels — exact from getColor() */
+.hm-l1  { background: #6b46c1; }                               /* effort 1   */
+.hm-l2  { background: #9333ea; }                               /* effort 2-3 */
+.hm-l3  { background: #a855f7; }                               /* effort 4-5 */
+.hm-l4  { background: #c084fc; box-shadow: 0 0 8px #c084fc55; }/* effort 6+  */
 
-/* Missed day (showed=no) */
-.hm-miss { background: rgba(244, 63, 94, 0.32); }
+/* Missed day (showed=no) — kept distinct from effort levels */
+.hm-miss { background: rgba(244, 63, 94, 0.45); }
 
 /* Today highlight ring */
 .hm-today {
-  outline: 1.5px solid rgba(124, 58, 237, 0.9);
+  outline: 1.5px solid #a855f7;
   outline-offset: 1px;
 }
 
-/* Hover: scale up + show tooltip via ::after */
+/* ── Hover: scale(1.25) — matches hover:scale-125 in React ── */
 .hm-cell:not(.hm-cell--empty):hover {
-  transform: scale(1.45);
+  transform: scale(1.25);
   z-index: 10;
 }
 
+/* ── Tooltip via CSS ::after ── */
 .hm-cell:not(.hm-cell--empty):hover::after {
   content: attr(title);
   position: absolute;
-  bottom: calc(100% + 7px);
+  bottom: calc(100% + 8px);
   left: 50%;
   transform: translateX(-50%);
-  background: #1a1a2e;
-  border: 1px solid var(--border);
-  padding: 4px 10px;
+  background: #0d1117;
+  border: 1px solid rgba(255,255,255,0.12);
+  padding: 5px 10px;
   border-radius: 6px;
-  font-size: 0.68rem;
-  color: var(--text-primary);
+  font-size: 0.7rem;
+  color: #e6edf3;
   white-space: nowrap;
   z-index: 50;
   pointer-events: none;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.55);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.6);
   font-family: 'Inter', sans-serif;
   font-weight: 500;
+  letter-spacing: 0.01em;
 }
+
+/* ── Fade-in animation when heatmap is rendered ── */
+@keyframes hm-fadein {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hm-root {
+  animation: hm-fadein 0.3s ease both;
+}
+
 
 /* ── Individual day cells ── */
 .day-cell {
@@ -1631,11 +1647,11 @@ body {
   flex-shrink: 0;
 }
 
-.gh-legend-dot--none { background: rgba(255,255,255,0.06); }
-.gh-legend-dot--e1   { background: rgba(124, 58, 237, 0.2); }
-.gh-legend-dot--e2   { background: rgba(124, 58, 237, 0.38); }
-.gh-legend-dot--e3   { background: rgba(124, 58, 237, 0.56); }
-.gh-legend-dot--e5   { background: var(--accent-violet); }
+.gh-legend-dot--none { background: #161b22; }
+.gh-legend-dot--e1   { background: #6b46c1; }
+.gh-legend-dot--e2   { background: #9333ea; }
+.gh-legend-dot--e3   { background: #a855f7; }
+.gh-legend-dot--e5   { background: #c084fc; }
 
 /* ── Mobile ── */
 @media (max-width: 640px) {
