@@ -150,12 +150,19 @@ function renderCalendarHeatmap() {
   const CELL = 12;  // px — matches w-[12px]
   const GAP  =  4;  // px — matches gap-[4px]
 
-  // Month label row: one div per week column (SAME flex structure as grid)
-  // Only the column where the month changes gets text — no pixel math.
-  // This is structurally identical to the grid so alignment is guaranteed.
-  const monthRowHTML = weeks.map((_, i) => {
+  // Month label row:
+  //   Label div width = CELL + GAP (16px) — NO flex gap on this row
+  //   Grid column     = CELL width + GAP between = 16px total
+  //   Both advance identically → pixel-perfect alignment
+  const COL_W = CELL + GAP; // 16px — exact column width
+
+  const monthRowHTML = weeks.map((week, i) => {
+    // Guard: skip label for any fully-empty week (safety)
+    const firstDate = week.find(d => d);
+    if (!firstDate) return `<div style="width:${COL_W}px" class="hm-month-col"></div>`;
+
     const found = monthLabels.find(m => m.index === i);
-    return `<div class="hm-month-col">${found ? found.label : ''}</div>`;
+    return `<div style="width:${COL_W}px" class="hm-month-col">${found ? found.label : ''}</div>`;
   }).join('');
 
   // Grid HTML — one .hm-week div per column, 7 .hm-cell divs per week (rows = day index)
