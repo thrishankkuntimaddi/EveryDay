@@ -2460,8 +2460,9 @@ body {
   .brand-name     { display: none; }
   .phase-badge    { display: none; }
   .streak-badge   { display: none; }
-  /* Hide the two icon-only buttons (focus + notify) */
-  #focus-mode-toggle { display: none; }
+  /* Focus mode visible on mobile — compact icon */
+  #focus-mode-toggle { width: 34px; height: 34px; padding: 7px; }
+  /* Notify still hidden to avoid crowding */
   #notify-btn        { display: none; }
 
   /* ── Compact header controls ── */
