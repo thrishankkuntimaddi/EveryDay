@@ -570,11 +570,12 @@ body {
 
 /* Block Header */
 .block-header {
-  padding: 18px 20px 14px;
+  padding: 14px 16px 12px;
+  min-height: 80px;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
   cursor: pointer;
   user-select: none;
 }
@@ -584,6 +585,7 @@ body {
   align-items: center;
   gap: 12px;
   flex: 1;
+  min-width: 0;
 }
 
 .block-icon {
@@ -598,25 +600,37 @@ body {
   background: rgba(255,255,255,0.05);
 }
 
-.block-info { flex: 1; }
-
-.block-name {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: var(--text-primary);
+.block-info {
+  flex: 1;
+  min-width: 0;
 }
 
+.block-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+
 .block-time {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--text-muted);
-  margin-top: 2px;
+  margin-top: 3px;
   font-family: 'JetBrains Mono', monospace;
+  white-space: nowrap;
 }
 
 .block-header-right {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .block-pct {
@@ -817,8 +831,11 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 3px;
+  gap: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
+
 
 .block-countdown {
   font-size: 0.68rem;
@@ -983,9 +1000,9 @@ body {
 
 .task-desc-panel {
   margin: 0 0 4px 44px;
-  padding: 10px 12px 8px;
-  background: rgba(124, 58, 237, 0.05);
-  border: 1px solid rgba(124, 58, 237, 0.18);
+  padding: 8px 10px 6px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-top: none;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   animation: fadeSlideIn 0.18s ease;
@@ -996,29 +1013,28 @@ body {
 
 .task-desc-textarea {
   width: 100%;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.07);
-  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  border-radius: 0;
   color: var(--text-secondary);
   font-family: 'Inter', sans-serif;
   font-size: 0.82rem;
   line-height: 1.65;
-  padding: 8px 10px;
+  padding: 4px 2px;
   resize: vertical;
-  min-height: 60px;
-  transition: border-color var(--transition);
+  min-height: 56px;
+  transition: color var(--transition);
 }
 
 .task-desc-textarea:focus {
   outline: none;
-  border-color: rgba(124, 58, 237, 0.35);
   color: var(--text-primary);
-  background: rgba(124, 58, 237, 0.04);
 }
 
 .task-desc-textarea::placeholder {
   color: var(--text-dim);
   font-style: italic;
+  opacity: 0.6;
 }
 
 .task-desc-actions {
@@ -1026,19 +1042,22 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  padding-top: 5px;
+  margin-top: 2px;
 }
 
 .task-desc-hint {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  opacity: 0.7;
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  opacity: 0.55;
 }
 
 .task-desc-clear-btn {
   background: none;
-  border: 1px solid rgba(244, 63, 94, 0.25);
-  color: var(--accent-rose);
-  font-size: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-size: 0.68rem;
   font-family: 'Inter', sans-serif;
   padding: 2px 8px;
   border-radius: 10px;
@@ -1047,8 +1066,11 @@ body {
 }
 
 .task-desc-clear-btn:hover {
-  background: rgba(244, 63, 94, 0.1);
+  border-color: rgba(244, 63, 94, 0.35);
+  color: var(--accent-rose);
+  background: rgba(244, 63, 94, 0.07);
 }
+
 
 
 /* ── Sub-tasks ── */
@@ -1407,17 +1429,127 @@ body {
   letter-spacing: 0.03em;
 }
 
-/* ── 30-day strip container ── */
+/* ── 30-day strip container (legacy — kept for scroll wrap) ── */
 .gh-scroll-wrap {
   width: 100%;
   overflow-x: auto;
+  padding-bottom: 4px;
+  /* Smooth momentum scroll on iOS */
+  -webkit-overflow-scrolling: touch;
 }
 
-.day-strip {
+/* ════════════════════════════════════════
+   CALENDAR HEATMAP (.hm-*)
+   Column = one week (Sun at top, Sat at bottom)
+   Each cell = one real calendar date
+════════════════════════════════════════ */
+
+.hm-root {
+  display: inline-block; /* shrink-wraps to actual grid width */
+  user-select: none;
+}
+
+/* Month labels row */
+/* Month label row — SAME flex structure as .hm-grid-body
+   One .hm-month-col per week column, text only where month changes.
+   No position:absolute, no pixel math — alignment is structural. */
+.hm-month-row {
   display: flex;
-  gap: 5px;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: row;
+  gap: var(--hm-gap, 3px);
+  margin-bottom: 4px;
+}
+
+.hm-month-col {
+  width: var(--hm-cell, 13px);
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  /* allow text to visually overflow right — same as GitHub */
+  overflow: visible;
+  pointer-events: none;
+  line-height: 1;
+}
+
+/* Week columns container */
+.hm-grid-body {
+  display: flex;
+  flex-direction: row;
+  gap: var(--hm-gap, 3px);
+}
+
+/* One week column (7 cells stacked) */
+.hm-week {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hm-gap, 3px);
+  flex-shrink: 0;
+}
+
+/* ── Individual heatmap cells ── */
+.hm-cell {
+  width: var(--hm-cell, 13px);
+  height: var(--hm-cell, 13px);
+  border-radius: 2px;
+  flex-shrink: 0;
+  position: relative;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  cursor: default;
+}
+
+/* Empty padding slot — completely invisible */
+.hm-cell--empty {
+  background: transparent !important;
+  outline: none !important;
+  pointer-events: none;
+}
+
+/* Level 0 = no activity */
+.hm-l0  { background: rgba(255,255,255,0.07); }
+
+/* Active levels — violet gradient matching app accent */
+.hm-l1  { background: rgba(124, 58, 237, 0.22); }
+.hm-l2  { background: rgba(124, 58, 237, 0.42); }
+.hm-l3  { background: rgba(124, 58, 237, 0.65); }
+.hm-l4  { background: var(--accent-violet); box-shadow: 0 0 6px rgba(124,58,237,0.55); }
+
+/* Missed day (showed=no) */
+.hm-miss { background: rgba(244, 63, 94, 0.32); }
+
+/* Today highlight ring */
+.hm-today {
+  outline: 1.5px solid rgba(124, 58, 237, 0.9);
+  outline-offset: 1px;
+}
+
+/* Hover: scale up + show tooltip via ::after */
+.hm-cell:not(.hm-cell--empty):hover {
+  transform: scale(1.45);
+  z-index: 10;
+}
+
+.hm-cell:not(.hm-cell--empty):hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a2e;
+  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+  z-index: 50;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.55);
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
 }
 
 /* ── Individual day cells ── */
@@ -1508,8 +1640,8 @@ body {
 /* ── Mobile ── */
 @media (max-width: 640px) {
   .history-heatmap-section { padding: 14px 12px 12px; }
-  .day-cell { width: 18px; height: 18px; }
-  .day-strip { gap: 4px; }
+  /* Scale down heatmap cells on small screens via CSS variable override */
+  .hm-root { --hm-cell: 11px; --hm-gap: 2px; }
   .gh-lc-count { font-size: 1.1rem; }
   .gh-lc-sub   { font-size: 0.78rem; }
   .gh-lc-stat  { font-size: 0.73rem; }
@@ -1899,23 +2031,29 @@ body {
 .focus-overlay[hidden] { display: none !important; }
 
 .focus-content {
-  width: min(560px, 90vw);
+  width: min(540px, 92vw);
+  max-height: 88vh;
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-xl);
-  padding: 36px;
+  padding: 0;
   box-shadow: 0 32px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .focus-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 28px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  flex-shrink: 0;
 }
 
 .focus-block-title {
-  font-size: 1.4rem;
+  font-size: 1.15rem;
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -1924,20 +2062,208 @@ body {
   background: rgba(255,255,255,0.06);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  padding: 7px 14px;
+  padding: 6px 12px;
   border-radius: var(--radius-sm);
   font-family: 'Inter', sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
   cursor: pointer;
   transition: all var(--transition);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .focus-exit-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
 
-.focus-tasks { display: flex; flex-direction: column; gap: 8px; margin-bottom: 28px; }
+/* Tasks — scrollable middle section */
+.focus-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+  padding: 12px 20px;
+  flex: 1;
+  min-height: 0;
+}
 
-.focus-timer-wrapper { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+/* Slim scrollbar inside tasks */
+.focus-tasks::-webkit-scrollbar { width: 4px; }
+.focus-tasks::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+.focus-tasks::-webkit-scrollbar-track { background: transparent; }
+
+
+/* ── Focus mode: block-bound countdown wrap ── */
+.focus-timer-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px 18px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  flex-shrink: 0;
+}
+
+/* ── Countdown block (new bar-based design) ── */
+.fm-countdown-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+}
+
+/* End time / done pill */
+.fm-end-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fm-end-chip {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px;
+  padding: 4px 12px;
+  letter-spacing: 0.01em;
+}
+
+.fm-end-chip strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.fm-done-chip {
+  font-size: 0.78rem;
+  color: var(--accent-emerald);
+  background: rgba(16,185,129,0.08);
+  border: 1px solid rgba(16,185,129,0.2);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-weight: 600;
+}
+
+/* Big countdown digits */
+.fm-timer-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.fm-timer-digits {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1;
+  text-shadow: 0 0 30px rgba(124,58,237,0.3);
+  transition: color 0.8s ease;
+}
+
+.fm-timer-digits.fm-timer-done {
+  color: var(--text-muted);
+  text-shadow: none;
+}
+
+.fm-timer-label {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* Progress bar */
+.fm-bar-wrap {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.fm-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.fm-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #7c3aed, #06b6d4);
+  transition: width 1s linear, background 0.8s ease;
+  box-shadow: 0 0 8px rgba(124,58,237,0.4);
+}
+
+.fm-bar-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fm-bar-start,
+.fm-bar-end {
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* DND badge */
+.fm-dnd-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+  border-radius: 20px;
+  color: rgba(167, 139, 250, 0.9);
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 6px 16px;
+  animation: dndPulse 2.5s ease-in-out infinite;
+}
+
+.fm-dnd-badge.fm-dnd-done {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: var(--accent-emerald);
+  animation: none;
+}
+
+
+@keyframes dndPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0); }
+  50%       { box-shadow: 0 0 0 5px rgba(124,58,237,0.07); }
+}
+
+/* Esc hint */
+.focus-esc-hint {
+  font-size: 0.64rem;
+  opacity: 0.5;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  padding: 1px 5px;
+  margin-left: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  vertical-align: middle;
+}
+
+/* Task items inside focus overlay: compact */
+.focus-tasks .task-item {
+  padding: 9px 12px;
+  gap: 10px;
+  border-radius: 8px;
+}
+
+.focus-tasks .task-label {
+  font-size: 0.87rem;
+}
+
+
 
 /* Timer Ring */
 .focus-ring-container {
@@ -2703,13 +3029,15 @@ body {
   cursor: pointer;
   flex-shrink: 0;
 }
-.ie-essential-cb {
+.ie-essential-cb,
+.ie-subtask-core-cb {
   appearance: none;
   -webkit-appearance: none;
   width: 0; height: 0;
   position: absolute;
   opacity: 0;
 }
+
 .ie-essential-pill {
   font-size: 0.7rem;
   font-weight: 600;
@@ -2727,12 +3055,14 @@ body {
   border-color: rgba(245,158,11,0.3);
   color: var(--accent-amber);
 }
-.ie-essential-cb:checked + .ie-essential-pill {
+.ie-essential-cb:checked + .ie-essential-pill,
+.ie-subtask-core-cb:checked + .ie-essential-pill {
   background: rgba(245,158,11,0.12);
   border-color: rgba(245,158,11,0.45);
   color: var(--accent-amber);
   box-shadow: 0 0 6px rgba(245,158,11,0.18);
 }
+
 
 /* Remove task button */
 .ie-remove-task-btn {
@@ -2775,6 +3105,155 @@ body {
   border-color: var(--accent-violet);
   color: var(--accent-violet-light);
   background: rgba(124,58,237,0.06);
+}
+
+/* ── Locked block banner in edit mode ── */
+.ie-locked-banner {
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.22);
+  border-radius: var(--radius-sm);
+  color: var(--accent-rose);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 8px 14px;
+  margin: 12px 20px 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ie-card-header-locked {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.ie-task-row-locked {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ie-locked-icon {
+  font-size: 0.75rem;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* ── Sub-task editor rows ── */
+.ie-subtasks-section {
+  margin-top: 4px;
+  padding-left: 18px;
+  border-left: 2px solid rgba(124, 58, 237, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ie-subtasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ie-subtask-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.015);
+  transition: background var(--transition);
+}
+
+.ie-subtask-row:hover {
+  background: rgba(124, 58, 237, 0.05);
+}
+
+.ie-subtask-bullet {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.ie-subtask-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-secondary);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8rem;
+  outline: none;
+  min-width: 60px;
+  padding: 2px 4px;
+  transition: border-color var(--transition), color var(--transition);
+}
+.ie-subtask-input:focus {
+  border-bottom-color: rgba(124, 58, 237, 0.4);
+  color: var(--text-primary);
+}
+.ie-subtask-input::placeholder { color: var(--text-dim); }
+
+.ie-subtask-weight {
+  width: 40px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  padding: 2px 4px;
+  text-align: center;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.ie-subtask-weight:focus { border-color: rgba(124,58,237,0.3); }
+
+.ie-subtask-pts-label {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  flex-shrink: 0;
+}
+
+.ie-subtask-core { margin-left: 2px; }
+
+.ie-remove-subtask-btn {
+  width: 20px; height: 20px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all var(--transition);
+  flex-shrink: 0;
+  padding: 0;
+}
+.ie-remove-subtask-btn:hover {
+  background: rgba(244,63,94,0.1);
+  color: var(--accent-rose);
+}
+
+.ie-add-subtask-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: 1px dashed rgba(124,58,237,0.18);
+  border-radius: var(--radius-sm);
+  color: var(--text-dim);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all var(--transition);
+  margin-top: 2px;
+  align-self: flex-start;
+}
+.ie-add-subtask-btn:hover {
+  border-color: var(--accent-violet);
+  color: var(--accent-violet-light);
+  background: rgba(124,58,237,0.05);
 }
 
 /* Add Block row at the bottom of the grid */
@@ -3294,8 +3773,8 @@ body {
 
 /* Very small screens */
 @media (max-width: 400px) {
-  .block-header { padding: 14px 14px 10px; }
-  .block-inner  { padding: 12px 14px 16px; }
+  .block-header { padding: 10px 12px 8px; min-height: 68px; }
+  .block-inner  { padding: 10px 12px 14px; }
   .task-item    { padding: 9px 10px; }
   .subtask-item { padding: 6px 8px; }
 
@@ -3303,3 +3782,232 @@ body {
   .focus-ring-svg        { width: 90px; height: 90px; }
   .focus-timer           { font-size: 1.15rem; }
 }
+
+/* ══════════════════════════════════════
+   RESPONSIVE — ALL NEW ELEMENTS
+   (Locked blocks, subtask editor, plan
+   editor cards, description panel)
+══════════════════════════════════════ */
+
+/* ── Desktop: widen plan editor grid ── */
+@media (min-width: 1024px) {
+  .blocks-grid {
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  }
+  /* Plan editor: show 2 cards side-by-side when screen is wide enough */
+  .inline-edit-grid {
+    grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  }
+  /* Subtask row inputs: show weight + core inline */
+  .ie-subtask-row {
+    flex-wrap: nowrap;
+  }
+}
+
+/* ── Tablet (769–1023px): single column edit, compact header meta ── */
+@media (max-width: 1023px) {
+  .inline-edit-grid {
+    grid-template-columns: 1fr;
+  }
+  .block-header-meta {
+    gap: 3px;
+  }
+}
+
+/* ── Mobile (≤640px): comprehensive touch-friendly overrides ── */
+@media (max-width: 640px) {
+
+  /* Block grid: single column, no gap issues */
+  .blocks-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Block header: consistent 68px height on mobile */
+  .block-header {
+    min-height: 68px;
+    padding: 12px 14px 10px;
+    gap: 8px;
+  }
+
+  /* Block name: slightly smaller on mobile, still 2-line clamp */
+  .block-name {
+    font-size: 0.85rem;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  /* Block time: slightly smaller */
+  .block-time { font-size: 0.67rem; }
+
+  /* Countdown: more compact */
+  .block-countdown { font-size: 0.6rem; }
+  .block-pct       { font-size: 0.7rem; }
+
+  /* Block header right: tighter spacing */
+  .block-header-right { gap: 6px; }
+  .block-header-meta  { gap: 1px; }
+
+  /* ── Locked banner (edit mode) ── */
+  .ie-locked-banner {
+    font-size: 0.73rem;
+    padding: 7px 12px;
+    margin: 10px 14px 4px;
+    border-radius: 6px;
+  }
+
+  /* ── Plan editor card overrides ── */
+  .inline-edit-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .ie-card-header {
+    flex-wrap: wrap;
+    padding: 12px 14px 10px;
+    gap: 8px;
+  }
+
+  /* Name input: full width on mobile */
+  .ie-name-input {
+    flex: 1 1 100%;
+    min-width: 0;
+    font-size: 0.9rem;
+  }
+
+  /* Time group: don't push off screen */
+  .ie-time-group {
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+  .ie-time { width: 88px; font-size: 0.8rem; }
+
+  /* Task rows: more compact */
+  .ie-task-row { padding: 8px 10px; }
+  .ie-task-main { gap: 6px; flex-wrap: nowrap; }
+  .ie-task-input { font-size: 0.85rem; }
+
+  /* Description textarea in edit mode: taller for touch */
+  .ie-task-desc {
+    font-size: 0.82rem;
+    min-height: 64px;
+    padding: 6px 8px;
+  }
+
+  /* ── Sub-task editor rows on mobile ── */
+  .ie-subtasks-section {
+    padding-left: 12px;
+  }
+
+  .ie-subtask-row {
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 6px 8px;
+  }
+
+  /* Full-width label on mobile */
+  .ie-subtask-input {
+    flex: 1 1 100%;
+    font-size: 0.82rem;
+    padding: 4px 6px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    order: 1;
+  }
+
+  /* Weight + pts + Core on same row below */
+  .ie-subtask-weight {
+    width: 48px;
+    font-size: 0.78rem;
+    order: 2;
+  }
+  .ie-subtask-pts-label { order: 3; font-size: 0.72rem; }
+  .ie-subtask-core      { order: 4; }
+  .ie-remove-subtask-btn {
+    order: 5;
+    width: 24px;
+    height: 24px;
+    margin-left: auto;
+  }
+
+  /* Add sub-task button: full width on mobile */
+  .ie-add-subtask-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 7px 12px;
+    font-size: 0.78rem;
+  }
+
+  /* Add task button: full width */
+  .ie-add-task-btn {
+    width: calc(100% - 28px);
+    margin: 8px 14px;
+    justify-content: center;
+    font-size: 0.82rem;
+  }
+
+  /* ── Normal view task description panel ── */
+  .task-desc-panel {
+    margin-left: 8px;   /* less indent on mobile */
+    padding: 6px 8px 5px;
+  }
+
+  .task-desc-textarea {
+    font-size: 0.85rem;  /* slightly larger for readability */
+    min-height: 72px;    /* bigger touch target */
+  }
+
+  /* ── Subtask list in normal view: less indent ── */
+  .subtask-list {
+    margin-left: 8px;
+    border-left-width: 2px;
+  }
+
+  .subtask-item {
+    padding: 9px 10px;  /* larger touch target */
+    gap: 9px;
+  }
+
+  .subtask-checkbox {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .subtask-label { font-size: 0.82rem; }
+  .subtask-weight { font-size: 0.68rem; }
+
+  /* ── Drag handle: always visible on mobile (no hover needed) ── */
+  .ie-drag-handle {
+    color: var(--text-muted) !important;
+    opacity: 0.7;
+    font-size: 1rem;
+  }
+
+  /* ── Edit Plan save/cancel: full-width-friendly ── */
+  .inline-save-btn,
+  .inline-cancel-btn {
+    padding: 7px 12px;
+    font-size: 0.8rem;
+  }
+
+  /* ── Collapsed block cards: touch-friendly header row ── */
+  .block-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+  }
+}
+
+/* ── Very small phones (≤380px) ── */
+@media (max-width: 380px) {
+  .block-header { min-height: 62px; padding: 10px 12px 8px; }
+  .block-name   { font-size: 0.82rem; }
+  .block-time   { font-size: 0.63rem; }
+  .ie-subtask-row { padding: 5px 6px; }
+  .ie-subtask-input { font-size: 0.78rem; }
+  .ie-task-input { font-size: 0.8rem; }
+  .task-desc-textarea { font-size: 0.8rem; }
+  .subtask-label { font-size: 0.78rem; }
+}
+

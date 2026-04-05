@@ -89,25 +89,31 @@ function buildActivityMap() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// STEP 4 — Month labels: scan weeks, detect month boundary per column
+// STEP 4 — Month labels: one entry per week where the month changes
+// Uses exact provided logic: compare first non-null date vs previous week's
 // ═══════════════════════════════════════════════════════════════════════════════
 function buildMonthLabels(weeks) {
-  const labels = [];  // [{ colIndex, name }]
-  const seen = new Set();
+  const monthLabels = [];
 
-  weeks.forEach((week, ci) => {
-    // first non-null date in this column
-    const first = week.find(d => d !== null);
-    if (!first) return;
+  weeks.forEach((week, index) => {
+    const firstDate = week.find(d => d !== null);
+    if (!firstDate) return;
 
-    const mk = `${first.getFullYear()}-${first.getMonth()}`;
-    if (!seen.has(mk)) {
-      seen.add(mk);
-      labels.push({ colIndex: ci, name: MONTH_SHORT[first.getMonth()] });
+    const month = firstDate.getMonth();
+
+    const prevWeek = weeks[index - 1];
+    const prevDate = prevWeek?.find(d => d !== null);
+    const prevMonth = prevDate?.getMonth();
+
+    if (index === 0 || month !== prevMonth) {
+      monthLabels.push({
+        index,
+        label: firstDate.toLocaleString('default', { month: 'short' })
+      });
     }
   });
 
-  return labels;
+  return monthLabels;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -136,18 +142,20 @@ function renderCalendarHeatmap() {
     if (data[k] && data[k] > 0) activeDays++;
   });
 
-  // ── Month labels (STEP 5) ─────────────────────────────────────────────────────
+  // ── Month labels ─────────────────────────────────────────────────────────────
   const monthLabels = buildMonthLabels(weeks);
 
   // ── Layout constants ─────────────────────────────────────────────────────────
   const CELL  = 13;  // px — cell width & height
   const GAP   =  3;  // px — gap between cells and weeks
-  const STEP  = CELL + GAP;  // px — per-column offset
 
-  // Month row HTML (absolute-positioned spans)
-  const monthRowHTML = monthLabels.map(({ colIndex, name }) =>
-    `<span class="hm-month-label" style="left:${colIndex * STEP}px">${name}</span>`
-  ).join('');
+  // Month label row: one div per week column (SAME flex structure as grid)
+  // Only the column where the month changes gets text — no pixel math.
+  // This is structurally identical to the grid so alignment is guaranteed.
+  const monthRowHTML = weeks.map((_, i) => {
+    const found = monthLabels.find(m => m.index === i);
+    return `<div class="hm-month-col">${found ? found.label : ''}</div>`;
+  }).join('');
 
   // Grid HTML — one .hm-week div per column, 7 .hm-cell divs per week (rows = day index)
   const gridHTML = weeks.map((week) => {
@@ -179,11 +187,9 @@ function renderCalendarHeatmap() {
     return `<div class="hm-week">${cellsHTML}</div>`;
   }).join('');
 
-  const totalWidth = weeks.length * STEP - GAP;
-
   container.innerHTML = `
     <div class="hm-root" style="--hm-cell:${CELL}px;--hm-gap:${GAP}px;">
-      <div class="hm-month-row" style="position:relative;width:${totalWidth}px;height:20px;margin-bottom:4px;">
+      <div class="hm-month-row">
         ${monthRowHTML}
       </div>
       <div class="hm-grid-body">
