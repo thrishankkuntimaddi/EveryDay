@@ -39,7 +39,7 @@ import { renderProgression }                      from './modules/progression.js
 import { renderSettings, attachSettingsListeners } from './modules/settings.js';
 import { openFocusMode, closeFocusMode, startTimer, pauseTimer, resetTimer, attachTimerInputListener } from './modules/focusMode.js';
 import { requestNotifications, scheduleReminders } from './modules/notifications.js';
-import { startBlockCountdowns } from './modules/blockTimer.js';
+import { startBlockCountdowns, getBlockStatus } from './modules/blockTimer.js';
 import { initDragSort } from './modules/dragSort.js';
 
 // ── View Navigation ───────────────────────────────────────────────────────────
@@ -77,13 +77,17 @@ function attachGlobalListeners() {
     btn.addEventListener('click', () => switchView(btn.dataset.view));
   });
 
-  // Focus mode toggle (header button)
+  // Focus mode toggle — syncs with current time window
+  // Priority: active (in progress now) → upcoming (next to start) → first incomplete → first block
   document.getElementById('focus-mode-toggle')?.addEventListener('click', () => {
-    const first = BLOCKS.find(b => {
+    const activeBlock   = BLOCKS.find(b => getBlockStatus(b) === 'active');
+    const upcomingBlock = BLOCKS.find(b => getBlockStatus(b) === 'upcoming');
+    const incompleteBlock = BLOCKS.find(b => {
       const { total, done } = getBlockProgress(b);
       return done < total;
-    }) || BLOCKS[0];
-    openFocusMode(first.id);
+    });
+    const target = activeBlock || upcomingBlock || incompleteBlock || BLOCKS[0];
+    openFocusMode(target.id);
   });
 
 
