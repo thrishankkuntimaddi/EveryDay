@@ -35,12 +35,13 @@ import { BLOCKS } from './modules/data.js';
 import { loadCustomPlan, enterEditMode, saveEditMode, exitEditMode } from './modules/planEditor.js';
 import { renderEOD, attachEODListeners, checkAndClearEODLock } from './modules/eod.js';
 import { renderHistory }                          from './modules/history.js';
-import { renderProgression }                      from './modules/progression.js';
+import { renderProgression, renderDashboardPhasePanel } from './modules/progression.js';
 import { renderSettings, attachSettingsListeners } from './modules/settings.js';
 import { openFocusMode, closeFocusMode, startTimer, pauseTimer, resetTimer, attachTimerInputListener } from './modules/focusMode.js';
 import { requestNotifications, scheduleReminders } from './modules/notifications.js';
 import { startBlockCountdowns, getBlockStatus } from './modules/blockTimer.js';
 import { initDragSort } from './modules/dragSort.js';
+import { renderImmediate } from './modules/immediate.js';
 
 // ── View Navigation ───────────────────────────────────────────────────────────
 
@@ -59,6 +60,13 @@ function switchView(viewId) {
 
   STATE.currentView = viewId;
 
+  // Close phase panel when leaving dashboard
+  if (viewId !== 'dashboard') {
+    const panel = document.getElementById('phase-panel');
+    if (panel) panel.hidden = true;
+  }
+
+  if (viewId === 'immediate')   renderImmediate();
   if (viewId === 'history')     renderHistory();
   if (viewId === 'progression') renderProgression();
   if (viewId === 'settings')    renderSettings();
@@ -137,6 +145,29 @@ function attachGlobalListeners() {
 
   // Re-init drag sort whenever blocks are re-rendered
   window.addEventListener('everyday:blocksRendered', () => initDragSort());
+
+  // Phase panel toggle (click #metric-phase card)
+  const phaseMetric = document.getElementById('metric-phase');
+  const phasePanel  = document.getElementById('phase-panel');
+  const phasePanelClose = document.getElementById('phase-panel-close');
+
+  function togglePhasePanel() {
+    if (!phasePanel) return;
+    const isHidden = phasePanel.hidden;
+    phasePanel.hidden = !isHidden;
+    if (!isHidden) return; // closing — no render needed
+    renderDashboardPhasePanel();
+    // Smooth scroll to panel
+    setTimeout(() => phasePanel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
+  }
+
+  phaseMetric?.addEventListener('click', togglePhasePanel);
+  phaseMetric?.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePhasePanel(); }
+  });
+  phasePanelClose?.addEventListener('click', () => {
+    if (phasePanel) phasePanel.hidden = true;
+  });
 
   // Collapse / Expand All blocks
   const collapseBtn   = document.getElementById('collapse-all-btn');

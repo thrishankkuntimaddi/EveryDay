@@ -1,6 +1,9 @@
 /**
  * progression.js — Phase selector and detail card rendering.
  * The monthly activity heatmap lives in history.js.
+ *
+ * renderDashboardPhasePanel() → used by the clickable Phase metric card in Dashboard
+ * renderProgression()         → kept for compatibility
  */
 
 import { STATE } from './state.js';
@@ -8,6 +11,12 @@ import { PHASES } from './data.js';
 import api from '../api/api.js';
 import { updatePhaseBadge } from './header.js';
 import { showToast } from '../utils/toast.js';
+
+/** Renders selector + detail inside #phase-panel (Dashboard) */
+export function renderDashboardPhasePanel() {
+  renderPhaseSelector();
+  renderPhaseDetail();
+}
 
 export function renderProgression() {
   renderPhaseSelector();

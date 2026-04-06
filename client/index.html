@@ -52,8 +52,11 @@
 
       <nav class="nav-tabs" role="navigation" aria-label="Main navigation">
         <button class="nav-tab active" data-view="dashboard" id="tab-dashboard">Dashboard</button>
+        <button class="nav-tab" data-view="immediate" id="tab-immediate">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:-1px;margin-right:4px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Immediate
+        </button>
         <button class="nav-tab" data-view="history" id="tab-history">History</button>
-        <button class="nav-tab" data-view="progression" id="tab-progression">Progression</button>
         <button class="nav-tab" data-view="settings" id="tab-settings">Settings</button>
       </nav>
 
@@ -157,10 +160,10 @@
             <div class="metric-value" id="streak-value">0 days</div>
           </div>
         </div>
-        <div class="metric-card" id="metric-phase">
+        <div class="metric-card metric-card--clickable" id="metric-phase" role="button" tabindex="0" title="Click to change phase" aria-label="Current phase — click to change">
           <div class="metric-icon">🧬</div>
           <div class="metric-body">
-            <div class="metric-label">Phase</div>
+            <div class="metric-label">Phase <span class="metric-card-tap-hint">↗</span></div>
             <div class="metric-value phase-text" id="phase-display">Stabilization</div>
           </div>
         </div>
@@ -199,6 +202,23 @@
 
       <div class="blocks-grid" id="blocks-grid">
         <!-- Dynamically rendered by JS -->
+      </div>
+
+      <!-- Phase Panel (hidden by default, toggled by clicking Phase metric card) -->
+      <div class="phase-panel" id="phase-panel" hidden>
+        <div class="phase-panel-header">
+          <div class="phase-panel-title">
+            <span>🧬</span>
+            <span>Growth Phase</span>
+          </div>
+          <button class="phase-panel-close" id="phase-panel-close" aria-label="Close phase panel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="phase-selector-grid" id="phase-selector-grid"></div>
+        <div class="phase-detail-card" id="phase-detail-card"></div>
       </div>
 
       <div class="eod-card" id="eod-card">
@@ -307,15 +327,47 @@
       </div>
     </div><!-- /view-history -->
 
-    <!-- ======= PROGRESSION VIEW ======= -->
-    <div class="view" id="view-progression">
-      <div class="view-header">
-        <h2 class="view-title">Growth Phases</h2>
-        <p class="view-sub">You evolve through phases — not timetables.</p>
+    <!-- ======= IMMEDIATE VIEW ======= -->
+    <div class="view" id="view-immediate">
+
+      <!-- Minimal header -->
+      <div class="imm-header">
+        <div class="imm-header-left">
+          <h2 class="imm-title">⚡ Immediate</h2>
+          <p class="imm-subtitle">Capture real-time tasks, fast.</p>
+        </div>
+        <button class="imm-clear-btn" id="imm-clear-btn" title="Clear all tasks">Clear all</button>
       </div>
-      <div class="phase-selector-grid" id="phase-selector-grid"></div>
-      <div class="phase-detail-card" id="phase-detail-card"></div>
-    </div><!-- /view-progression -->
+
+      <!-- Progress bar -->
+      <div class="imm-progress-wrap">
+        <div class="imm-progress-track">
+          <div class="imm-progress-fill" id="imm-progress-fill">
+            <div class="imm-progress-bar" id="imm-progress-bar" style="width:0%"></div>
+          </div>
+        </div>
+        <span class="imm-progress-label" id="imm-progress-label">No tasks yet</span>
+      </div>
+
+      <!-- Task list -->
+      <div class="imm-task-list" id="imm-task-list"></div>
+
+      <!-- Quick-add input bar -->
+      <div class="imm-quick-add" id="imm-quick-add">
+        <input class="imm-quick-input" id="imm-quick-input"
+               type="text" placeholder="Add a task… (press Enter)"
+               maxlength="120" autocomplete="off" autocorrect="off" autocapitalize="sentences" />
+        <button class="imm-quick-add-btn" id="imm-quick-add-btn" aria-label="Add task">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+      </div>
+
+    </div><!-- /view-immediate -->
+
+    <!-- ======= PROGRESSION VIEW (kept for phase data, accessed via Dashboard panel) ======= -->
+    <div class="view" id="view-progression" style="display:none !important"></div>
 
     <!-- ======= SETTINGS VIEW ======= -->
     <div class="view" id="view-settings">
@@ -380,17 +432,17 @@
       </svg>
       <span>Dashboard</span>
     </button>
+    <button class="mobile-nav-btn" data-view="immediate" id="mob-tab-immediate" aria-label="Immediate">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      <span>Immediate</span>
+    </button>
     <button class="mobile-nav-btn" data-view="history" id="mob-tab-history" aria-label="History">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
       </svg>
       <span>History</span>
-    </button>
-    <button class="mobile-nav-btn" data-view="progression" id="mob-tab-progression" aria-label="Progression">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
-      </svg>
-      <span>Growth</span>
     </button>
     <button class="mobile-nav-btn" data-view="settings" id="mob-tab-settings" aria-label="Settings">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
