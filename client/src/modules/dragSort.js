@@ -7,6 +7,7 @@
  */
 
 import { BLOCKS } from './data.js';
+import { patchUserData } from '../lib/db.js';
 
 const DRAGGING_CLASS  = 'dragging';
 const DRAG_OVER_CLASS = 'drag-over';
@@ -228,7 +229,7 @@ function _bindTouch(list, blockId) {
   });
 }
 
-// ── Sync BLOCKS data ──────────────────────────────────────────────────────────
+// ── Sync BLOCKS data → Firestore ──────────────────────────────────────────────
 
 function _reorderBlock(blockId, fromIdx, toIdx) {
   if (fromIdx === toIdx) return;
@@ -239,7 +240,8 @@ function _reorderBlock(blockId, fromIdx, toIdx) {
   const [moved] = tasks.splice(fromIdx, 1);
   tasks.splice(toIdx, 0, moved);
 
-  try {
-    localStorage.setItem('everyday_custom_plan', JSON.stringify(BLOCKS));
-  } catch {}
+  // Persist reordered plan to Firestore (fire-and-forget)
+  patchUserData({ customPlan: JSON.parse(JSON.stringify(BLOCKS)) }).catch(err =>
+    console.warn('[EveryDay] dragSort Firestore sync failed:', err.message)
+  );
 }

@@ -13,7 +13,9 @@ import { BLOCKS } from './data.js';
 import api         from '../api/api.js';
 import { showToast } from '../utils/toast.js';
 import { scheduleReminders } from './notifications.js';
-import { todayKey } from '../utils/date.js';
+
+import { auth, logout, changePassword, deleteCurrentUser } from '../lib/auth.js';
+import { patchUserData } from '../lib/db.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -47,6 +49,12 @@ export function renderSettings() {
   const goalInput = document.getElementById('user-goal');
   if (nameInput) nameInput.value = STATE.settings.name || '';
   if (goalInput) goalInput.value = STATE.settings.goal || '';
+
+  // Show signed-in email in Account card
+  const emailEl = document.getElementById('settings-account-email');
+  if (emailEl && auth.currentUser?.email) {
+    emailEl.textContent = `Signed in as ${auth.currentUser.email}`;
+  }
 
   // Build reminder rows from BLOCKS
   const container = document.getElementById('reminder-list');
@@ -162,23 +170,24 @@ export function attachSettingsListeners() {
     }
   });
 
-  // Export — full JSON download
+  // Export — full JSON download (reads from STATE + Firestore cache only)
   document.getElementById('export-data')?.addEventListener('click', () => {
     try {
+      const today = new Date();
+      const dateKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
       const exportPayload = {
-        exportedAt: new Date().toISOString(),
+        exportedAt: today.toISOString(),
         tasks:      STATE.tasks,
         history:    STATE.history,
         settings:   STATE.settings,
         phase:      STATE.phase,
         streak:     STATE.streak,
-        blocks:     JSON.parse(localStorage.getItem('everyday_custom_plan') || 'null'),
       };
       const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: 'application/json' });
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
-      a.download = `everyday-backup-${todayKey()}.json`;
+      a.download = `everyday-backup-${dateKey}.json`;
       a.click();
       URL.revokeObjectURL(url);
       showToast('📤 Data exported! File downloaded.', 'success');
@@ -187,7 +196,7 @@ export function attachSettingsListeners() {
     }
   });
 
-  // Import — restore from JSON file
+  // Import — restore from JSON file → Firestore only
   document.getElementById('import-data-file')?.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -195,18 +204,15 @@ export function attachSettingsListeners() {
       const text = await file.text();
       const data = JSON.parse(text);
 
-      // Restore state
-      if (data.tasks)    STATE.tasks    = data.tasks;
-      if (data.history)  STATE.history  = data.history;
-      if (data.streak)   STATE.streak   = data.streak;
-      if (data.phase)    STATE.phase    = data.phase;
-      if (data.settings) STATE.settings = data.settings;
+      // Build patch payload from whatever fields are present in the backup
+      const patch = {};
+      if (data.tasks)    patch.tasks    = data.tasks;
+      if (data.history)  patch.history  = data.history;
+      if (data.streak)   patch.streak   = data.streak;
+      if (data.phase)    patch.phase    = data.phase;
+      if (data.settings) patch.settings = data.settings;
 
-      // Restore custom blocks if any
-      if (data.blocks && Array.isArray(data.blocks)) {
-        localStorage.setItem('everyday_custom_plan', JSON.stringify(data.blocks));
-      }
-
+      await patchUserData(patch);
       showToast('📥 Data imported! Refreshing...', 'success');
       setTimeout(() => location.reload(), 1200);
     } catch (err) {
@@ -216,16 +222,85 @@ export function attachSettingsListeners() {
     e.target.value = '';
   });
 
-  // Reset
+  // Reset All Data — Firestore only
   document.getElementById('reset-data')?.addEventListener('click', async () => {
-    if (!confirm('⚠️ This will permanently delete ALL your data. Are you absolutely sure?')) return;
+    if (!confirm('⚠️ This will permanently delete ALL your data and reset to the boilerplate. Are you absolutely sure?')) return;
     if (!confirm('Last warning — this cannot be undone. Confirm?')) return;
     try {
       await api.data.reset();
-      showToast('🗑 All data cleared. Refreshing...', 'success');
-      setTimeout(() => location.reload(), 1500);
+      showToast('🗑 All data cleared. Reloading...', 'success');
+      setTimeout(() => location.reload(), 800);
     } catch (err) {
       showToast('⚠️ Reset failed: ' + err.message, 'error');
+    }
+  });
+
+  // Logout — immediate reload, no async race
+  document.getElementById('logout-btn')?.addEventListener('click', async () => {
+    try { await logout(); } catch (err) {
+      showToast('⚠️ Sign out failed: ' + err.message, 'error');
+      return;
+    }
+    location.reload();
+  });
+
+  // Change Password
+  document.getElementById('change-password-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const currentPwd = document.getElementById('settings-current-pwd')?.value;
+    const newPwd     = document.getElementById('settings-new-pwd')?.value;
+    const confirmPwd = document.getElementById('settings-confirm-pwd')?.value;
+
+    if (!currentPwd || !newPwd || !confirmPwd) {
+      showToast('⚠️ Please fill in all password fields.', 'error'); return;
+    }
+    if (newPwd !== confirmPwd) {
+      showToast('⚠️ New passwords do not match.', 'error'); return;
+    }
+    if (newPwd.length < 6) {
+      showToast('⚠️ New password must be at least 6 characters.', 'error'); return;
+    }
+    const btn = document.getElementById('change-password-btn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+    try {
+      await changePassword(currentPwd, newPwd);
+      showToast('✅ Password updated successfully!', 'success');
+      e.target.reset();
+    } catch (err) {
+      const msg = err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+        ? 'Current password is incorrect.'
+        : err.message;
+      showToast('⚠️ ' + msg, 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Update Password'; }
+    }
+  });
+
+  // Delete Account (requires password re-auth)
+  document.getElementById('delete-account-btn')?.addEventListener('click', async () => {
+    if (!confirm('⚠️ This will permanently delete your account AND all your data. This cannot be undone.')) return;
+
+    const currentPwd = prompt('Enter your current password to confirm account deletion:');
+    if (!currentPwd) return;
+
+    try {
+      // Wipe Firestore data first, then delete auth account
+      await patchUserData({
+        tasks: {}, streak: { count: 0, lastDate: null, longest: 0 },
+        history: [], settings: { name: '', goal: '', reminders: {} },
+        phase: 'stabilization', lastDate: null,
+        customPlan: null, taskDescs: {}, immediateTasks: [],
+        eodLocked: null, planTomorrow: null,
+      });
+      // Re-auth + delete (throws if wrong password)
+      await deleteCurrentUser(currentPwd);
+      showToast('Account deleted.', 'success');
+      setTimeout(() => location.reload(), 600);
+    } catch (err) {
+      const msg = err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential'
+        ? '⚠️ Incorrect password — account not deleted.'
+        : '⚠️ Delete failed: ' + err.message;
+      showToast(msg, 'error');
     }
   });
 }

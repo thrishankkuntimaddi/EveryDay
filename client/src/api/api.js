@@ -1,61 +1,26 @@
 /**
- * api.js — Centralized API client for the EveryDay server.
+ * api.js — Firestore-backed data client for EveryDay.
  *
- * HYBRID MODE:
- * - If the server is reachable, all data goes to/from the Express API.
- * - If the server is NOT reachable (e.g. GitHub Pages), falls back to
- *   localStorage so the app remains fully functional as a static app.
+ * All data flows through Firestore (via getCached / patchUserData from db.js).
  *
- * Usage:
- *   import api from './api/api.js';
- *   const tasks = await api.getTasks();
- *   await api.toggleTask('morning-1');
+ * F6 — Dead server-mode branches removed. The Express server path
+ *      (_serverAvailable) was permanently false and could never be reached.
+ *      Removing it eliminates ~30 lines of unreachable code and the
+ *      maintenance risk of someone accidentally enabling the wrong path.
+ *
+ * forceFirestoreMode() is kept as a no-op so main.js import doesn't break.
  */
 
-const BASE = '/api';
+import { getCached, patchUserData } from '../lib/db.js';
 
-// ── Server reachability flag ───────────────────────────────────────────────
-// Set to false on first failed request; reset on successful health check.
-let _serverAvailable = true;
-let _checkedServer = false;
+// ── Kept as no-op for backward-compatibility with main.js import ──────────────
+export function forceFirestoreMode() {}
 
-export async function checkServerAvailability() {
-  try {
-    const res = await fetch(`${BASE}/health`, { signal: AbortSignal.timeout(2000) });
-    _serverAvailable = res.ok;
-  } catch {
-    _serverAvailable = false;
-  }
-  _checkedServer = true;
-  return _serverAvailable;
-}
-
-export function isServerAvailable() { return _serverAvailable; }
-
-// ── localStorage fallback helpers ─────────────────────────────────────────────
-const LS_KEYS = {
-  tasks:    'nista_tasks',
-  streak:   'nista_streak',
-  history:  'nista_history',
-  settings: 'nista_settings',
-  phase:    'nista_phase',
-  lastDate: 'nista_last_date',
-};
-
-function lsGet(key, fallback = null) {
-  try {
-    const v = localStorage.getItem(key);
-    return v !== null ? JSON.parse(v) : fallback;
-  } catch { return fallback; }
-}
-
-function lsSet(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
-}
+// ── Date helpers ──────────────────────────────────────────────────────────────
 
 function todayKey() {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function isYesterday(dateStr) {
@@ -65,27 +30,19 @@ function isYesterday(dateStr) {
   return d.toDateString() === yesterday.toDateString();
 }
 
-// ── Core fetch wrapper (server mode) ─────────────────────────────────────────
-async function request(path, options = {}) {
-  const url = `${BASE}${path}`;
-  const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  });
+// ── F5: Task date pruning helper ──────────────────────────────────────────────
+// Removes task entries older than KEEP_DAYS to prevent the single Firestore
+// document from approaching the 1 MiB limit over months of use.
 
-  let data;
-  const ct = res.headers.get('content-type') || '';
-  if (ct.includes('application/json')) {
-    data = await res.json();
-  } else {
-    data = await res.text();
-  }
+const KEEP_DAYS = 30;
 
-  if (!res.ok) {
-    const errMsg = (typeof data === 'object' && data?.error) ? data.error : `HTTP ${res.status}`;
-    throw new Error(errMsg);
+function pruneOldTaskDates(allTasks) {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - KEEP_DAYS);
+  const cutoffKey = `${cutoff.getFullYear()}-${String(cutoff.getMonth() + 1).padStart(2, '0')}-${String(cutoff.getDate()).padStart(2, '0')}`;
+  for (const dateKey of Object.keys(allTasks)) {
+    if (dateKey < cutoffKey) delete allTasks[dateKey];
   }
-  return data;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -93,34 +50,26 @@ async function request(path, options = {}) {
 // ══════════════════════════════════════════════════════════════════════════════
 const tasks = {
   getToday: async () => {
-    if (_serverAvailable) return request('/tasks');
-    // localStorage fallback
     const today = todayKey();
-    const all = lsGet(LS_KEYS.tasks, {});
+    const all   = getCached('tasks', {});
     return { date: today, tasks: all[today] || {} };
   },
 
   toggle: async (taskId, done) => {
-    if (_serverAvailable) {
-      const body = done !== undefined ? JSON.stringify({ done }) : undefined;
-      return request(`/tasks/${taskId}`, { method: 'PATCH', body });
-    }
-    // localStorage fallback
     const today = todayKey();
-    const all = lsGet(LS_KEYS.tasks, {});
+    const all   = getCached('tasks', {});
     if (!all[today]) all[today] = {};
     const newVal = done !== undefined ? done : !all[today][taskId];
     all[today][taskId] = newVal;
-    lsSet(LS_KEYS.tasks, all);
+    await patchUserData({ tasks: all });
     return { date: today, taskId, done: newVal };
   },
 
   resetToday: async () => {
-    if (_serverAvailable) return request('/tasks/today', { method: 'DELETE' });
     const today = todayKey();
-    const all = lsGet(LS_KEYS.tasks, {});
-    all[today] = {};
-    lsSet(LS_KEYS.tasks, all);
+    const all   = getCached('tasks', {});
+    all[today]  = {};
+    await patchUserData({ tasks: all });
     return { message: "Today's tasks reset.", date: today };
   },
 };
@@ -130,47 +79,48 @@ const tasks = {
 // ══════════════════════════════════════════════════════════════════════════════
 const streak = {
   get: async () => {
-    if (_serverAvailable) return request('/streak');
-    return lsGet(LS_KEYS.streak, { count: 0, lastDate: null, longest: 0 });
+    return getCached('streak', { count: 0, lastDate: null, longest: 0 });
   },
 
   update: async () => {
-    if (_serverAvailable) return request('/streak/update', { method: 'POST' });
-    // localStorage fallback — replicate server streak logic
-    const today = todayKey();
-    const lastDate = lsGet(LS_KEYS.lastDate);
-    const streakData = lsGet(LS_KEYS.streak, { count: 0, lastDate: null, longest: 0 });
+    const today      = todayKey();
+    const lastDate   = getCached('lastDate', null);
+    const streakData = { ...getCached('streak', { count: 0, lastDate: null, longest: 0 }) };
 
     let newDay = false;
     if (lastDate !== today) {
       newDay = true;
-      // Reset today's tasks
-      const allTasks = lsGet(LS_KEYS.tasks, {});
-      allTasks[today] = {};
-      lsSet(LS_KEYS.tasks, allTasks);
 
+      // Reset today's tasks
+      const allTasks  = getCached('tasks', {});
+      allTasks[today] = {};
+
+      // F5 — Prune task entries older than 30 days to keep document size bounded
+      pruneOldTaskDates(allTasks);
+
+      // Update streak count
       if (lastDate && isYesterday(lastDate)) {
         streakData.count += 1;
         if (streakData.count > streakData.longest) streakData.longest = streakData.count;
       } else if (lastDate && lastDate !== today) {
-        streakData.count = 0;
+        streakData.count = 0; // streak broken
       }
       streakData.lastDate = today;
-      lsSet(LS_KEYS.streak, streakData);
-      lsSet(LS_KEYS.lastDate, today);
+
+      // Write tasks + streak + lastDate in one Firestore call
+      await patchUserData({ tasks: allTasks, streak: streakData, lastDate: today });
     }
 
     return { updated: newDay, newDay, streak: streakData };
   },
 
   confirmShowUp: async () => {
-    if (_serverAvailable) return request('/streak/showup', { method: 'PATCH' });
-    const today = todayKey();
-    const streakData = lsGet(LS_KEYS.streak, { count: 0, lastDate: null, longest: 0 });
+    const today      = todayKey();
+    const streakData = { ...getCached('streak', { count: 0, lastDate: null, longest: 0 }) };
     streakData.count = Math.max(streakData.count, 1);
     if (streakData.count > streakData.longest) streakData.longest = streakData.count;
     streakData.lastDate = today;
-    lsSet(LS_KEYS.streak, streakData);
+    await patchUserData({ streak: streakData });
     return { streak: streakData };
   },
 };
@@ -180,29 +130,22 @@ const streak = {
 // ══════════════════════════════════════════════════════════════════════════════
 const history = {
   getAll: async () => {
-    if (_serverAvailable) return request('/history');
-    const h = lsGet(LS_KEYS.history, []);
+    const h = getCached('history', []);
     return [...h].sort((a, b) => b.date.localeCompare(a.date));
   },
 
   getToday: async () => {
-    if (_serverAvailable) return request('/history/today');
     const today = todayKey();
-    const h = lsGet(LS_KEYS.history, []);
+    const h     = getCached('history', []);
     return h.find(e => e.date === today) || null;
   },
 
   submit: async (payload) => {
-    if (_serverAvailable) {
-      return request('/history', { method: 'POST', body: JSON.stringify(payload) });
-    }
-    // localStorage fallback
     const today = todayKey();
-    let h = lsGet(LS_KEYS.history, []);
-    h = h.filter(e => e.date !== today);
+    const h     = [...getCached('history', [])].filter(e => e.date !== today);
     const entry = { ...payload, date: today, submittedAt: new Date().toISOString() };
     h.push(entry);
-    lsSet(LS_KEYS.history, h);
+    await patchUserData({ history: h });
     return entry;
   },
 };
@@ -212,38 +155,21 @@ const history = {
 // ══════════════════════════════════════════════════════════════════════════════
 const settings = {
   get: async () => {
-    if (_serverAvailable) return request('/settings');
-    return lsGet(LS_KEYS.settings, { name: '', goal: '', reminders: {} });
+    return getCached('settings', { name: '', goal: '', reminders: {} });
   },
 
   update: async (partial) => {
-    if (_serverAvailable) {
-      return request('/settings', { method: 'PATCH', body: JSON.stringify(partial) });
-    }
-    const current = lsGet(LS_KEYS.settings, { name: '', goal: '', reminders: {} });
-    // Deep-merge: nested objects (like reminders) are merged, not replaced
-    const updated = { ...current };
-    for (const [k, v] of Object.entries(partial)) {
-      if (v !== null && typeof v === 'object' && !Array.isArray(v) && typeof current[k] === 'object') {
-        updated[k] = { ...current[k], ...v };
-      } else {
-        updated[k] = v;
-      }
-    }
-    lsSet(LS_KEYS.settings, updated);
-    return updated;
+    // patchUserData handles the deep-merge for nested objects (e.g. settings.reminders)
+    await patchUserData({ settings: partial });
+    return getCached('settings', { name: '', goal: '', reminders: {} });
   },
 
   getPhase: async () => {
-    if (_serverAvailable) return request('/settings/phase');
-    return { phase: lsGet(LS_KEYS.phase, 'stabilization') };
+    return { phase: getCached('phase', 'stabilization') };
   },
 
   setPhase: async (phase) => {
-    if (_serverAvailable) {
-      return request('/settings/phase', { method: 'PATCH', body: JSON.stringify({ phase }) });
-    }
-    lsSet(LS_KEYS.phase, phase);
+    await patchUserData({ phase });
     return { phase };
   },
 };
@@ -253,47 +179,39 @@ const settings = {
 // ══════════════════════════════════════════════════════════════════════════════
 const data = {
   export: async () => {
-    if (_serverAvailable) {
-      const res = await fetch(`${BASE}/data/export`);
-      if (!res.ok) throw new Error('Export failed');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const today = todayKey();
-      const a = document.createElement('a');
-      a.href = url; a.download = `everyday-backup-${today}.json`; a.click();
-      URL.revokeObjectURL(url);
-      return;
-    }
-    // localStorage fallback — export everything from LS
     const snapshot = {
-      tasks:    lsGet(LS_KEYS.tasks, {}),
-      streak:   lsGet(LS_KEYS.streak, {}),
-      history:  lsGet(LS_KEYS.history, []),
-      settings: lsGet(LS_KEYS.settings, {}),
-      phase:    lsGet(LS_KEYS.phase, 'stabilization'),
+      tasks:      getCached('tasks',    {}),
+      streak:     getCached('streak',   {}),
+      history:    getCached('history',  []),
+      settings:   getCached('settings', {}),
+      phase:      getCached('phase',    'stabilization'),
       exportedAt: new Date().toISOString(),
     };
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
     a.href = url; a.download = `everyday-backup-${todayKey()}.json`; a.click();
     URL.revokeObjectURL(url);
   },
 
   reset: async () => {
-    if (_serverAvailable) {
-      return request('/data/reset', { method: 'DELETE', headers: { 'X-Confirm-Reset': 'yes' } });
-    }
-    Object.values(LS_KEYS).forEach(k => localStorage.removeItem(k));
+    await patchUserData({
+      tasks:    {},
+      streak:   { count: 0, lastDate: null, longest: 0 },
+      history:  [],
+      settings: { name: '', goal: '', reminders: {} },
+      phase:    'stabilization',
+      lastDate: null,
+    });
     return { message: 'All data reset successfully.' };
   },
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// HEALTH
+// HEALTH  (kept for any callers that still reference api.health.check)
 // ══════════════════════════════════════════════════════════════════════════════
 const health = {
-  check: () => request('/health'),
+  check: () => Promise.resolve({ status: 'firestore-only' }),
 };
 
 export default { tasks, streak, history, settings, data, health };

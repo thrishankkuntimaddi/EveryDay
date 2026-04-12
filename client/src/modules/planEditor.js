@@ -8,17 +8,14 @@
  *   enterEditMode()   — switches dashboard to edit mode
  *   exitEditMode()    — reverts to view mode without saving
  *   saveEditMode()    — persists edits and reverts to view mode
- *   loadCustomPlan()  — loads saved plan from localStorage on boot
+ *   loadCustomPlan()  — loads saved plan from Firestore cache on boot
  */
 
 import { BLOCKS } from './data.js';
 import { renderBlocks, updateMasterProgress, getTaskDesc, setTaskDesc } from './blocks.js';
 import { showToast } from '../utils/toast.js';
 import { isBlockMarkable, getBlockStatus } from './blockTimer.js';
-
-const STORAGE_KEY = 'everyday_custom_plan';
-const PLAN_VERSION_KEY = 'everyday_plan_version';
-const PLAN_VERSION = 'v2'; // bump this whenever the default boilerplate changes
+import { patchUserData, getCached } from '../lib/db.js';
 
 // Working draft — populated when edit mode is entered
 let _draft = [];
@@ -37,29 +34,45 @@ const EMOJI_OPTIONS = [
 
 export function loadCustomPlan() {
   try {
-    // Version guard — if the boilerplate version changed, wipe stale saved plan
-    const savedVersion = localStorage.getItem(PLAN_VERSION_KEY);
-    if (savedVersion !== PLAN_VERSION) {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.setItem(PLAN_VERSION_KEY, PLAN_VERSION);
-      return false; // use fresh default BLOCKS
+    // ── Carry-forward: after midnight, activate tomorrow's structured plan ─────
+    // If the user planned tomorrow via the EOD editor and it's now 00:00–03:59,
+    // promote planTomorrow.blocks into today's BLOCKS and clear the field.
+    const h = new Date().getHours();
+    if (h < 4) {
+      const planTomorrow = getCached('planTomorrow', null);
+      if (planTomorrow && Array.isArray(planTomorrow.blocks) && planTomorrow.blocks.length > 0) {
+        BLOCKS.length = 0;
+        // Strip focusNote from each block before using it as a live block
+        planTomorrow.blocks.forEach(({ focusNote: _fn, ...block }) => BLOCKS.push(block));
+        // Persist as customPlan and clear planTomorrow atomically
+        patchUserData({
+          planTomorrow:  null,
+          customPlan:    JSON.parse(JSON.stringify(BLOCKS)),
+        }).catch(() => {});
+        console.log('[EveryDay] 📅 Tomorrow\'s plan carried forward into today.');
+        return true;
+      }
     }
 
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return false;
-    const saved = JSON.parse(raw);
-    if (!Array.isArray(saved) || saved.length === 0) return false;
-    BLOCKS.length = 0;
-    saved.forEach(b => BLOCKS.push(b));
-    return true;
+    const fsPlan = getCached('customPlan', null);
+    if (Array.isArray(fsPlan) && fsPlan.length > 0) {
+      BLOCKS.length = 0;
+      fsPlan.forEach(b => BLOCKS.push(b));
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
 }
 
 function savePlanToStorage() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(BLOCKS));
+  // Firestore is the ONLY persistence location
+  patchUserData({ customPlan: JSON.parse(JSON.stringify(BLOCKS)) }).catch(err =>
+    console.warn('[EveryDay] Plan Firestore sync failed:', err.message)
+  );
 }
+
 
 // ── Edit Mode Entry / Exit ───────────────────────────────────────────────────
 
@@ -162,7 +175,8 @@ function _renderEditMode() {
       id: `custom-${Date.now()}`,
       name: 'New Block',
       icon: '⭐',
-      time: '09:00 – 10:00',
+      // ── Always start ~30 min from now so the block is never immediately locked ──
+      time: _nextHalfHour(),
       color: 'linear-gradient(90deg, #7c3aed, #9d64f8)',
       tasks: [{ id: `custom-${Date.now()}-1`, label: 'New task', isCore: false }]
     };
@@ -325,7 +339,7 @@ function _bindEditCardEvents(container) {
     };
   });
 
-  // Task description textareas — auto-save to localStorage immediately
+  // Task description textareas — auto-save to Firestore immediately
   container.querySelectorAll('.ie-task-desc:not([disabled])').forEach(ta => {
     ta.addEventListener('input', () => {
       const taskId = ta.dataset.taskid;
@@ -579,4 +593,23 @@ function _splitTime(timeStr) {
     (parts[0] || '00:00').trim().padStart(5, '0'),
     (parts[1] || '00:00').trim().padStart(5, '0'),
   ];
+}
+
+/**
+ * Returns a time string starting ~30 min from now (rounded to next half-hour),
+ * spanning 1 hour — so new blocks are always editable (never in the past).
+ * e.g. at 18:39 → "19:00 – 20:00"
+ */
+function _nextHalfHour() {
+  const now      = new Date();
+  const totalMin = now.getHours() * 60 + now.getMinutes();
+  // Round up to the next 30-minute mark at least 30 minutes away
+  const startMin = Math.ceil((totalMin + 30) / 30) * 30;
+  const endMin   = startMin + 60;
+  const fmt = m => {
+    const hh = Math.floor(m / 60) % 24;
+    const mm = m % 60;
+    return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
+  };
+  return `${fmt(startMin)} – ${fmt(endMin)}`;
 }

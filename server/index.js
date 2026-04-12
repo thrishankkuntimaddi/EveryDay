@@ -37,6 +37,7 @@
  *   GET    /api/health             — Health check
  */
 
+import 'dotenv/config';   // load .env before anything else
 import express from 'express';
 import cors from 'cors';
 import { initStore } from './src/db/store.js';
@@ -47,6 +48,7 @@ import streakRoutes   from './src/routes/streak.routes.js';
 import historyRoutes  from './src/routes/history.routes.js';
 import settingsRoutes from './src/routes/settings.routes.js';
 import dataRoutes     from './src/routes/data.routes.js';
+import authRoutes     from './src/routes/auth.routes.js';
 
 const PORT = process.env.PORT || 4000;
 
@@ -77,6 +79,7 @@ app.use('/api/streak',   streakRoutes);
 app.use('/api/history',  historyRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/data',     dataRoutes);
+app.use('/api/auth',     authRoutes);   // Brevo email verification
 
 // ── Health check ──────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {

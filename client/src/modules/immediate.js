@@ -1,36 +1,37 @@
 /**
- * immediate.js — Immediate Task System
- * =======================================
+ * immediate.js — Immediate Task System (Firestore-backed)
+ * =========================================================
  * A fast, lightweight, separate planning space for capturing
  * real-time thoughts and short-term tasks.
  *
- * ⚠️ SEPARATION RULE:
- *   - Storage key:  'immediate_tasks'  (NEVER overlaps with everyday_tasks)
- *   - No server calls, no streaks, no analytics
- *   - State is fully independent from STATE in state.js
+ * Data is stored in Firestore at field `immediateTasks` in the user document.
+ * All reads go through getCached(); all writes go through patchUserData().
  */
 
 import { showToast } from '../utils/toast.js';
+import { getCached, patchUserData } from '../lib/db.js';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
-const STORAGE_KEY = 'immediate_tasks';
-
-// ── Internal State ────────────────────────────────────────────────────────────
+// ── Internal State ─────────────────────────────────────────────────────────────
 let _tasks = [];
 let _expandedIds = new Set();
 
-// ── Persistence ───────────────────────────────────────────────────────────────
+// ── Drag-to-reorder state (module-level so touch drag can share it) ────────────
+let _immDragSrc     = null;
+let _immMouseOnHdl  = false;
+let _touchEl        = null;
+let _touchClone     = null;
+let _touchOX        = 0;
+let _touchOY        = 0;
+
+// ── Persistence (Firestore) ────────────────────────────────────────────────────
 function loadTasks() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    _tasks = raw ? JSON.parse(raw) : [];
-  } catch {
-    _tasks = [];
-  }
+  _tasks = getCached('immediateTasks', []).map(t => ({ ...t }));
 }
 
 function saveTasks() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(_tasks));
+  patchUserData({ immediateTasks: JSON.parse(JSON.stringify(_tasks)) }).catch(err =>
+    console.warn('[EveryDay] immediateTasks sync failed:', err.message)
+  );
 }
 
 // ── Task Helpers ───────────────────────────────────────────────────────────────
@@ -230,6 +231,13 @@ function buildCardHTML(task) {
     <div class="imm-task-card${task.done ? ' done' : ''}${isExpanded ? ' expanded' : ''}"
          id="imm-card-${task.id}">
       <div class="imm-task-main">
+        <div class="imm-drag-handle" title="Drag to reorder" aria-label="Drag to reorder">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="9" cy="4" r="2"/><circle cx="15" cy="4" r="2"/>
+            <circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/>
+            <circle cx="9" cy="20" r="2"/><circle cx="15" cy="20" r="2"/>
+          </svg>
+        </div>
         <button class="imm-checkbox${task.done ? ' checked' : ''}"
                 data-action="toggle" data-id="${task.id}"
                 aria-label="${task.done ? 'Mark incomplete' : 'Mark complete'}">
@@ -367,6 +375,9 @@ function renderTaskList() {
     const card = document.getElementById(`imm-card-${task.id}`);
     if (card) attachCardListeners(card, task);
   });
+
+  // Init drag-to-reorder after cards are in the DOM
+  _initImmDrag(list);
 }
 
 // ── Main Render ───────────────────────────────────────────────────────────────
@@ -404,6 +415,150 @@ function attachQuickAddListener() {
 
     clearBtn?.addEventListener('click', clearAll);
   }
+}
+
+// ── Drag-to-Reorder (Desktop HTML5 DnD + Touch) ───────────────────────────────
+
+function _initImmDrag(list) {
+  if (!list) return;
+
+  list.querySelectorAll('.imm-task-card').forEach(card => {
+    card.draggable = false;
+    const handle = card.querySelector('.imm-drag-handle');
+    if (!handle) return;
+
+    // ── Desktop HTML5 DnD ──
+    handle.addEventListener('mousedown', () => {
+      _immMouseOnHdl = true;
+      card.draggable = true;
+    });
+
+    card.addEventListener('mouseup', () => {
+      if (!_immDragSrc) {
+        _immMouseOnHdl = false;
+        card.draggable = false;
+      }
+    });
+
+    card.addEventListener('dragstart', e => {
+      if (!_immMouseOnHdl) { e.preventDefault(); return; }
+      _immDragSrc = card;
+      card.classList.add('imm-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', card.id);
+      _immMouseOnHdl = false;
+    });
+
+    card.addEventListener('dragend', () => {
+      card.classList.remove('imm-dragging');
+      card.draggable = false;
+      list.querySelectorAll('.imm-drag-over').forEach(el => el.classList.remove('imm-drag-over'));
+      _immDragSrc = null;
+    });
+
+    card.addEventListener('dragover', e => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (_immDragSrc && _immDragSrc !== card) {
+        list.querySelectorAll('.imm-drag-over').forEach(el => el.classList.remove('imm-drag-over'));
+        card.classList.add('imm-drag-over');
+      }
+    });
+
+    card.addEventListener('dragleave', e => {
+      if (!card.contains(e.relatedTarget)) card.classList.remove('imm-drag-over');
+    });
+
+    card.addEventListener('drop', e => {
+      e.preventDefault();
+      card.classList.remove('imm-drag-over');
+      if (!_immDragSrc || _immDragSrc === card) return;
+
+      const cards   = [...list.querySelectorAll('.imm-task-card')];
+      const fromIdx = cards.indexOf(_immDragSrc);
+      const toIdx   = cards.indexOf(card);
+      if (fromIdx === -1 || toIdx === -1) return;
+
+      // DOM reorder
+      if (fromIdx < toIdx) list.insertBefore(_immDragSrc, card.nextSibling);
+      else                  list.insertBefore(_immDragSrc, card);
+
+      // Data reorder + persist
+      const [moved] = _tasks.splice(fromIdx, 1);
+      _tasks.splice(toIdx, 0, moved);
+      saveTasks();
+    });
+
+    // ── Touch drag ──
+    handle.addEventListener('touchstart', e => {
+      const rect = card.getBoundingClientRect();
+      _touchEl   = card;
+      _touchOX   = e.touches[0].clientX - rect.left;
+      _touchOY   = e.touches[0].clientY - rect.top;
+
+      _touchClone = card.cloneNode(true);
+      Object.assign(_touchClone.style, {
+        position:      'fixed',
+        width:         `${rect.width}px`,
+        left:          `${rect.left}px`,
+        top:           `${rect.top}px`,
+        zIndex:        '9999',
+        pointerEvents: 'none',
+        opacity:       '0.88',
+        boxShadow:     '0 8px 32px rgba(0,0,0,0.55)',
+        borderRadius:  '12px',
+        transition:    'none',
+      });
+      document.body.appendChild(_touchClone);
+      card.style.opacity = '0.25';
+    }, { passive: true });
+
+    handle.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (!_touchClone) return;
+      const t = e.touches[0];
+      _touchClone.style.left = `${t.clientX - _touchOX}px`;
+      _touchClone.style.top  = `${t.clientY - _touchOY}px`;
+
+      _touchClone.style.display = 'none';
+      const under  = document.elementFromPoint(t.clientX, t.clientY);
+      _touchClone.style.display = '';
+
+      const target = under?.closest('.imm-task-card');
+      list.querySelectorAll('.imm-drag-over').forEach(el => el.classList.remove('imm-drag-over'));
+      if (target && target !== _touchEl && list.contains(target)) {
+        target.classList.add('imm-drag-over');
+      }
+    }, { passive: false });
+
+    handle.addEventListener('touchend', e => {
+      if (!_touchClone) return;
+      const t = e.changedTouches[0];
+      _touchClone.style.display = 'none';
+      const under  = document.elementFromPoint(t.clientX, t.clientY);
+      _touchClone.style.display = '';
+      const target = under?.closest('.imm-task-card');
+
+      if (target && target !== _touchEl && list.contains(target)) {
+        const cards   = [...list.querySelectorAll('.imm-task-card')];
+        const fromIdx = cards.indexOf(_touchEl);
+        const toIdx   = cards.indexOf(target);
+        if (fromIdx !== -1 && toIdx !== -1) {
+          if (fromIdx < toIdx) list.insertBefore(_touchEl, target.nextSibling);
+          else                  list.insertBefore(_touchEl, target);
+          const [moved] = _tasks.splice(fromIdx, 1);
+          _tasks.splice(toIdx, 0, moved);
+          saveTasks();
+        }
+      }
+
+      _touchClone.remove();
+      _touchClone = null;
+      if (_touchEl) _touchEl.style.opacity = '';
+      list.querySelectorAll('.imm-drag-over').forEach(el => el.classList.remove('imm-drag-over'));
+      _touchEl = null;
+    }, { passive: true });
+  });
 }
 
 // ── Utility ───────────────────────────────────────────────────────────────────

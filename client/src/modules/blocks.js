@@ -9,21 +9,26 @@ import api from '../api/api.js';
 import { showToast } from '../utils/toast.js';
 import { openFocusMode } from './focusMode.js';
 import { isBlockMarkable, getBlockStatus, getBlockRange } from './blockTimer.js';
+import { getCached, patchUserData } from '../lib/db.js';
 
-// ── Task Description (localStorage) ──────────────────────────────────────────
-
-const DESC_PREFIX = 'everyday_desc_';
+// ── Task Description (Firestore-backed) ──────────────────────────────────────
 
 export function getTaskDesc(taskId) {
-  return localStorage.getItem(`${DESC_PREFIX}${taskId}`) || '';
+  const descs = getCached('taskDescs', {});
+  return descs[taskId] || '';
 }
 
 export function setTaskDesc(taskId, text) {
+  const descs = { ...getCached('taskDescs', {}) };
   if (text && text.trim()) {
-    localStorage.setItem(`${DESC_PREFIX}${taskId}`, text);
+    descs[taskId] = text.trim();
   } else {
-    localStorage.removeItem(`${DESC_PREFIX}${taskId}`);
+    delete descs[taskId];
   }
+  // Fire-and-forget to Firestore; cache is updated synchronously inside patchUserData
+  patchUserData({ taskDescs: descs }).catch(err =>
+    console.warn('[EveryDay] taskDescs sync failed:', err.message)
+  );
 }
 
 // ── Time Formatting ──────────────────────────────────────────────────────────
@@ -156,6 +161,16 @@ export function renderBlocks() {
 
   attachBlockListeners();
 
+  // ── Restore UI state: re-expand any blocks the user had open ─────────────
+  // STATE.expandedBlocks is never touched by Firestore sync, so this survives
+  // remote updates, plan reloads, and any other full re-render.
+  STATE.expandedBlocks.forEach(blockId => {
+    const card   = document.getElementById(`block-card-${blockId}`);
+    const header = document.getElementById(`block-header-${blockId}`);
+    if (card)   card.classList.add('expanded');
+    if (header) header.setAttribute('aria-expanded', 'true');
+  });
+
   // Signal other modules that blocks have been re-rendered
   window.dispatchEvent(new CustomEvent('everyday:blocksRendered'));
 }
@@ -179,7 +194,7 @@ function renderTaskList(block) {
       : '';
     const statusCls = locked ? ' task-locked' : '';
 
-    // Description — always show ℹ button; load saved text from localStorage
+    // Description — always show ℹ button; load saved text from Firestore cache
     const savedDesc = getTaskDesc(task.id);
     const descBtn = `<button class="task-desc-btn${savedDesc ? ' has-desc' : ''}"
       data-task="${task.id}"
@@ -334,8 +349,17 @@ export function toggleBlock(blockId) {
   if (!card || !header) return;
 
   const isExpanded = card.classList.contains('expanded');
-  card.classList.toggle('expanded', !isExpanded);
-  header.setAttribute('aria-expanded', String(!isExpanded));
+  const willExpand = !isExpanded;
+
+  card.classList.toggle('expanded', willExpand);
+  header.setAttribute('aria-expanded', String(willExpand));
+
+  // Keep UI state Set in sync so re-renders can restore this choice
+  if (willExpand) {
+    STATE.expandedBlocks.add(blockId);
+  } else {
+    STATE.expandedBlocks.delete(blockId);
+  }
 }
 
 // ── Task Toggle (calls server) ────────────────────────────────────────────────
@@ -523,5 +547,7 @@ export function openFirstBlock() {
     const header = document.getElementById(`block-header-${block.id}`);
     if (card)   card.classList.add('expanded');
     if (header) header.setAttribute('aria-expanded', 'true');
+    // Seed the UI state Set so subsequent re-renders know these are open
+    STATE.expandedBlocks.add(block.id);
   });
 }

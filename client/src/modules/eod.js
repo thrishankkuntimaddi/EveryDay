@@ -13,9 +13,11 @@
 import { STATE } from './state.js';
 import { getOverallProgress } from './blocks.js';
 import { updateHeaderStreak } from './header.js';
+import { collectAndSaveTomorrowPlan } from './tomorrowPlan.js';
 import api from '../api/api.js';
 import { showToast } from '../utils/toast.js';
 import { todayKey } from '../utils/date.js';
+import { getCached, patchUserData } from '../lib/db.js';
 
 // ── Unlock conditions ─────────────────────────────────────────────────────────
 
@@ -27,12 +29,12 @@ function isAfter9PM() {
   return new Date().getHours() >= 21;
 }
 
-/** EOD lock clears at 4AM (morning block start). */
+/** EOD lock clears at 4AM — reads from Firestore cache, clears via patchUserData. */
 export function checkAndClearEODLock() {
   const h = new Date().getHours();
   if (h >= 4) {
     STATE.eodLocked = false;
-    localStorage.removeItem('eodLocked');
+    patchUserData({ eodLocked: null }).catch(() => {});
   }
 }
 
@@ -87,6 +89,7 @@ export function renderEOD() {
     _showLock();
   }
 }
+
 
 // ── Auto-suggestion (pre-fill before user edits) ──────────────────────────────
 
@@ -274,24 +277,11 @@ function resetEODUI() {
   if (planSection) planSection.hidden = false;
 }
 
-// ── Plan for Tomorrow ─────────────────────────────────────────────────────────
-
-const PLAN_TMR_KEY = 'everyday_plan_tomorrow';
-
+// (Plan for Tomorrow persistence — delegated to tomorrowPlan.js)
 export function loadPlanForTomorrow() {
-  try {
-    const raw = localStorage.getItem(PLAN_TMR_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch { return null; }
+  return getCached('planTomorrow', null);
 }
 
-function _savePlanForTomorrow(notes) {
-  localStorage.setItem(PLAN_TMR_KEY, JSON.stringify({ notes, savedAt: new Date().toISOString() }));
-}
-
-function _clearPlanForTomorrow() {
-  localStorage.removeItem(PLAN_TMR_KEY);
-}
 
 // ── Submit ────────────────────────────────────────────────────────────────────
 
@@ -330,18 +320,13 @@ export async function submitEOD() {
     STATE.history = STATE.history.filter(h => h.date !== todayKey());
     STATE.history.push(entry);
 
-    // Handle Plan for Tomorrow
-    const planNotes = document.getElementById('eod-plan-notes')?.value?.trim() || '';
-    if (planNotes) {
-      _savePlanForTomorrow(planNotes);
-      showToast("\ud83d\udcc5 Tomorrow's plan saved!", 'success');
-    } else {
-      _clearPlanForTomorrow();
-    }
+    // Handle Plan for Tomorrow — delegated to tomorrowPlan.js
+    const hasPlan = collectAndSaveTomorrowPlan();
+    if (hasPlan) showToast("📅 Tomorrow's plan saved!", 'success');
 
-    // Lock the day — unlocks at 4AM
+    // Lock the day — persisted to Firestore; unlocks at 4AM
     STATE.eodLocked = true;
-    localStorage.setItem('eodLocked', todayKey());
+    patchUserData({ eodLocked: todayKey() }).catch(() => {});
 
     _showBody();
     _showSubmittedValues(entry);
