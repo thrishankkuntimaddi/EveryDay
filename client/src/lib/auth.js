@@ -41,7 +41,13 @@ export const listenToAuth = (callback) => onAuthStateChanged(auth, callback);
 export const login = (email, password) =>
   signInWithEmailAndPassword(auth, email, password);
 
-// ── Signup with Firebase email verification ───────────────────────────────────
+// Action settings: after email verification, redirect back to the app
+const ACTION_CODE_SETTINGS = {
+  url: 'https://thrishankkuntimaddi.github.io/EveryDay/',
+  handleCodeInApp: false, // Firebase handles verification, then redirects to url
+};
+
+// ── Signup with Firebase email verification ────────────────────────────────────
 
 /**
  * signup — Create a new Firebase account, then send a verification email
@@ -63,7 +69,7 @@ export const signup = async (email, password) => {
   }
 
   // 3. Send Firebase's built-in verification email (works on GitHub Pages)
-  await sendEmailVerification(cred.user);
+  await sendEmailVerification(cred.user, ACTION_CODE_SETTINGS);
   console.log(`[Auth] ✉️  Firebase verification email sent to ${email}`);
 
   return cred;
@@ -75,7 +81,7 @@ export const signup = async (email, password) => {
 export const resendVerificationEmail = async () => {
   const user = auth.currentUser;
   if (!user) throw new Error('No user signed in.');
-  await sendEmailVerification(user);
+  await sendEmailVerification(user, ACTION_CODE_SETTINGS);
   console.log(`[Auth] ✉️  Verification email resent to ${user.email}`);
 };
 
