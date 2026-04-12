@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="EveryDay — Your personal discipline, progression, and execution tracking system. Build identity through consistency." />
+  <title>EveryDay — Discipline. Progression. Execution.</title>
+
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="icon" type="image/png" href="./favicon.png" sizes="512x512" />
+
+  <!-- PWA: Web App Manifest -->
+  <link rel="manifest" href="./manifest.json" />
+
+  <!-- PWA: iOS Safari standalone support -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="EveryDay" />
+  <link rel="apple-touch-icon" href="./icons/icon-192.png" />
+
+  <!-- PWA: Theme & splash -->
+  <meta name="theme-color" content="#080810" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <meta property="og:title" content="EveryDay — Discipline. Progression. Execution." />
+  <meta property="og:description" content="A personal discipline and execution tracking system. Build identity through consistency." />
+  <meta property="og:type" content="website" />
+  <meta name="twitter:card" content="summary" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script type="module" crossorigin src="/EveryDay/assets/index-CyGuKaER.js"></script>
+  <link rel="stylesheet" crossorigin href="/EveryDay/assets/index-aVS-5gPI.css">
+</head>
+<body>
+
+  <!-- ========================
+       NAVIGATION / HEADER
+  ======================== -->
+  <header class="app-header" id="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">
+          <!-- Meditation figure in lotus pose -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <!-- Head -->
+            <circle cx="12" cy="4" r="2"/>
+            <!-- Body / crossed legs (lotus) -->
+            <path d="M8 20 Q12 15 16 20"/>
+            <path d="M6 18 Q12 13 18 18"/>
+            <!-- Left arm up -->
+            <path d="M12 9 Q8 11 7 14"/>
+            <!-- Right arm up -->
+            <path d="M12 9 Q16 11 17 14"/>
+            <!-- Spine -->
+            <line x1="12" y1="6" x2="12" y2="13"/>
+            <!-- Aura glow arcs -->
+            <path d="M5 6 Q3 10 5 14" stroke-opacity="0.45"/>
+            <path d="M19 6 Q21 10 19 14" stroke-opacity="0.45"/>
+          </svg>
+        </div>
+        <span class="brand-name">EveryDay</span>
+      </div>
+
+      <nav class="nav-tabs" role="navigation" aria-label="Main navigation">
+        <button class="nav-tab active" data-view="dashboard" id="tab-dashboard">Dashboard</button>
+        <button class="nav-tab" data-view="immediate" id="tab-immediate">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline;vertical-align:-1px;margin-right:4px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Immediate
+        </button>
+        <button class="nav-tab" data-view="history" id="tab-history">History</button>
+        <button class="nav-tab" data-view="settings" id="tab-settings">Settings</button>
+      </nav>
+
+      <div class="header-actions">
+        <div class="streak-badge" id="header-streak" title="Current streak">
+          <span class="flame">🔥</span>
+          <span class="streak-count" id="streak-count-header">0</span>
+        </div>
+        <div class="phase-badge" id="phase-badge-header">Stabilization</div>
+
+        <!-- Focus Mode — visible on mobile too (before Min Mode) -->
+        <button class="icon-btn" id="focus-mode-toggle" title="Focus Mode" aria-label="Toggle Focus Mode">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+          </svg>
+        </button>
+
+        <!-- Minimum Mode compact toggle -->
+        <div class="header-min-mode" title="Bad day? Show only essential tasks.">
+          <span class="header-min-label">Min Mode</span>
+          <label class="toggle-switch" for="min-mode-toggle" aria-label="Minimum Mode">
+            <input type="checkbox" id="min-mode-toggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <!-- Edit Plan + inline save/cancel -->
+        <button class="header-edit-plan-btn" id="edit-plan-btn" aria-label="Edit your day plan">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+          Edit Plan
+        </button>
+        <button class="header-plan-tmr-btn" id="plan-tomorrow-btn" aria-label="Plan for tomorrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+          Tomorrow
+        </button>
+        <div class="inline-edit-actions hidden" id="inline-edit-actions">
+          <span class="inline-edit-label">Editing…</span>
+          <button class="inline-cancel-btn" id="inline-cancel-btn" aria-label="Cancel editing">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            Cancel
+          </button>
+          <button class="inline-save-btn" id="inline-save-btn" aria-label="Save plan">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            Save
+          </button>
+        </div>
+
+        <button class="icon-btn" id="notify-btn" title="Enable Notifications" aria-label="Enable Notifications">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================
+       FOCUS MODE OVERLAY
+  ======================== -->
+  <div class="focus-overlay" id="focus-overlay" hidden>
+    <div class="focus-content">
+      <div class="focus-header">
+        <h2 class="focus-block-title" id="focus-block-title">Focus Mode</h2>
+        <button class="focus-exit-btn" id="focus-exit-btn" aria-label="Exit Focus Mode">
+          ✕ Exit <span class="focus-esc-hint">Esc</span>
+        </button>
+      </div>
+
+      <!-- Task list (rendered by JS) -->
+      <div class="focus-tasks" id="focus-tasks"></div>
+
+      <!-- Countdown section (fully rendered by JS into this mount point) -->
+      <div id="focus-timer-wrap" class="focus-timer-wrap"></div>
+    </div>
+  </div>
+
+  <!-- ========================
+       MAIN APP CONTENT
+  ======================== -->
+  <main class="app-main" id="app-main">
+
+    <!-- ======= DASHBOARD VIEW ======= -->
+    <div class="view active" id="view-dashboard">
+
+      <!-- Metrics bar: date, streak, phase + execution ring -->
+      <div class="metrics-bar">
+        <div class="metric-card" id="metric-today">
+          <div class="metric-icon">📅</div>
+          <div class="metric-body">
+            <div class="metric-label">Today</div>
+            <div class="metric-value" id="today-date">—</div>
+          </div>
+        </div>
+        <div class="metric-card" id="metric-streak">
+          <div class="metric-icon">🔥</div>
+          <div class="metric-body">
+            <div class="metric-label">Streak</div>
+            <div class="metric-value" id="streak-value">0 days</div>
+          </div>
+        </div>
+        <div class="metric-card metric-card--clickable" id="metric-phase" role="button" tabindex="0" title="Click to change phase" aria-label="Current phase — click to change">
+          <div class="metric-icon">🧬</div>
+          <div class="metric-body">
+            <div class="metric-label">Phase <span class="metric-card-tap-hint">↗</span></div>
+            <div class="metric-value phase-text" id="phase-display">Stabilization</div>
+          </div>
+        </div>
+
+        <div class="metric-card execution-ring-card" id="metric-execution">
+          <div class="execution-ring-container">
+            <svg class="execution-ring-svg" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+              <defs>
+                <linearGradient id="ringGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stop-color="#7c3aed"/>
+                  <stop offset="100%" stop-color="#06b6d4"/>
+                </linearGradient>
+              </defs>
+              <circle class="ring-bg" cx="32" cy="32" r="26"/>
+              <circle class="ring-progress" id="master-ring-fill" cx="32" cy="32" r="26"
+                stroke-dasharray="163.36" stroke-dashoffset="163.36"
+                transform="rotate(-90 32 32)"/>
+            </svg>
+            <div class="execution-ring-pct" id="overall-progress-val">0%</div>
+          </div>
+          <div class="metric-body">
+            <div class="metric-label">Today's Execution</div>
+            <div class="metric-value" id="master-progress-label">0 / 0 tasks</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="blocks-toolbar">
+        <button class="collapse-all-btn" id="collapse-all-btn" aria-label="Collapse all blocks" title="Collapse all blocks">
+          <svg id="collapse-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+          <span id="collapse-label">Collapse All</span>
+        </button>
+      </div>
+
+      <div class="blocks-grid" id="blocks-grid">
+        <!-- Dynamically rendered by JS -->
+      </div>
+
+      <!-- Phase Panel (hidden by default, toggled by clicking Phase metric card) -->
+      <div class="phase-panel" id="phase-panel" hidden>
+        <div class="phase-panel-header">
+          <div class="phase-panel-title">
+            <span>🧬</span>
+            <span>Growth Phase</span>
+          </div>
+          <button class="phase-panel-close" id="phase-panel-close" aria-label="Close phase panel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div class="phase-selector-grid" id="phase-selector-grid"></div>
+        <div class="phase-detail-card" id="phase-detail-card"></div>
+      </div>
+
+      <div class="eod-card" id="eod-card">
+        <div class="eod-header">
+          <div class="eod-title">
+            <span class="eod-icon">🌙</span>
+            <h3>End of Day Reflection</h3>
+          </div>
+          <div class="eod-submitted-badge" id="eod-submitted-badge" hidden>✓ Submitted</div>
+        </div>
+        <!-- Lock overlay — shown until EOD is unlocked -->
+        <div class="eod-lock-overlay" id="eod-lock-overlay" hidden></div>
+        <div class="eod-body" id="eod-body">
+          <!-- Auto-suggestion badge -->
+          <div class="eod-suggestion-badge" id="eod-suggestion-badge" hidden></div>
+
+          <div class="eod-field">
+            <label class="eod-label">Did you show up today?</label>
+            <div class="eod-options" id="eod-showed-up">
+              <button class="eod-option" data-val="yes" id="eod-yes">✅ Yes, I showed up</button>
+              <button class="eod-option" data-val="no" id="eod-no">❌ No, I didn't</button>
+            </div>
+          </div>
+          <div class="eod-field">
+            <label class="eod-label">Effort level today (1–5)</label>
+            <div class="effort-stars" id="effort-stars" role="group" aria-label="Effort rating">
+              <button class="star-btn" data-val="1" aria-label="1 star">★</button>
+              <button class="star-btn" data-val="2" aria-label="2 stars">★</button>
+              <button class="star-btn" data-val="3" aria-label="3 stars">★</button>
+              <button class="star-btn" data-val="4" aria-label="4 stars">★</button>
+              <button class="star-btn" data-val="5" aria-label="5 stars">★</button>
+            </div>
+          </div>
+          <div class="eod-field">
+            <label class="eod-label" for="eod-notes">Reflection notes <span class="eod-label-hint">(auto-suggested — edit freely)</span></label>
+            <textarea class="eod-textarea" id="eod-notes" placeholder="What went well? What can improve? Any insight about today..." rows="3"></textarea>
+          </div>
+
+          <!-- Plan for Tomorrow moved to its own card below EOD -->
+
+          <button class="eod-submit-btn" id="eod-submit">Save Reflection</button>
+        </div>
+      </div>
+
+    <!-- ======= PLAN FOR TOMORROW CARD ======= -->
+    <div class="tomorrow-plan-card" id="tomorrow-plan-card">
+      <div class="tomorrow-plan-header">
+        <div class="tomorrow-plan-title-row">
+          <span class="tomorrow-plan-icon">📅</span>
+          <div>
+            <h3 class="tomorrow-plan-title">Plan for Tomorrow</h3>
+            <p class="tomorrow-plan-sub">Expand any block to add tasks, subtasks &amp; descriptions. Saves automatically.</p>
+          </div>
+        </div>
+        <span class="tomorrow-plan-badge">Auto-saves</span>
+      </div>
+      <div class="tomorrow-plan-grid" id="tomorrow-plan-grid"></div>
+    </div>
+
+  </div><!-- /view-dashboard -->
+
+    <!-- ======= HISTORY VIEW ======= -->
+    <div class="view" id="view-history">
+      <div class="view-header">
+        <h2 class="view-title">Execution History</h2>
+        <p class="view-sub">Every day you showed up is recorded here.</p>
+      </div>
+
+      <!-- LeetCode-style activity heatmap -->
+      <div class="history-heatmap-section" id="history-heatmap-section">
+
+        <!-- Header row: "X days showed up" + inline stats -->
+        <div class="gh-lc-header">
+          <div class="gh-lc-left">
+            <strong class="gh-lc-count" id="gh-lc-count">0</strong>
+            <span class="gh-lc-sub"> days active in the past year</span>
+          </div>
+          <div class="gh-lc-right">
+            <span class="gh-lc-stat">Total active days: <strong id="gh-lc-total">0</strong></span>
+            <span class="gh-lc-divider">·</span>
+            <span class="gh-lc-stat">Current streak: <strong id="gh-lc-streak">0</strong></span>
+          </div>
+        </div>
+
+        <!-- Calendar heatmap: week columns × 7 day-of-week rows -->
+        <div class="gh-heatmap-header-row">
+          <span class="gh-year-range" id="gh-year-range"></span>
+        </div>
+        <div class="gh-scroll-wrap" id="gh-scrollable">
+          <!-- hm-root is injected by JS; #heatmap-grid is the mount point -->
+          <div id="heatmap-grid"></div>
+        </div>
+
+        <!-- Legend -->
+        <div class="gh-legend">
+          <span class="gh-legend-text">Less</span>
+          <span class="gh-legend-dot gh-legend-dot--none"></span>
+          <span class="gh-legend-dot gh-legend-dot--e1"></span>
+          <span class="gh-legend-dot gh-legend-dot--e2"></span>
+          <span class="gh-legend-dot gh-legend-dot--e3"></span>
+          <span class="gh-legend-dot gh-legend-dot--e5"></span>
+          <span class="gh-legend-text">More</span>
+        </div>
+      </div>
+
+      <div class="history-grid" id="history-grid"></div>
+      <div class="history-empty" id="history-empty" hidden>
+        <div class="empty-icon">📭</div>
+        <p>No history yet. Complete your first day and submit a reflection.</p>
+      </div>
+    </div><!-- /view-history -->
+
+    <!-- ======= IMMEDIATE VIEW ======= -->
+    <div class="view" id="view-immediate">
+
+      <!-- Minimal header -->
+      <div class="imm-header">
+        <div class="imm-header-left">
+          <h2 class="imm-title">⚡ Immediate</h2>
+          <p class="imm-subtitle">Capture real-time tasks, fast.</p>
+        </div>
+        <button class="imm-clear-btn" id="imm-clear-btn" title="Clear all tasks">Clear all</button>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="imm-progress-wrap">
+        <div class="imm-progress-track">
+          <div class="imm-progress-fill" id="imm-progress-fill">
+            <div class="imm-progress-bar" id="imm-progress-bar" style="width:0%"></div>
+          </div>
+        </div>
+        <span class="imm-progress-label" id="imm-progress-label">No tasks yet</span>
+      </div>
+
+      <!-- Task list -->
+      <div class="imm-task-list" id="imm-task-list"></div>
+
+      <!-- Quick-add input bar -->
+      <div class="imm-quick-add" id="imm-quick-add">
+        <input class="imm-quick-input" id="imm-quick-input"
+               type="text" placeholder="Add a task… (press Enter)"
+               maxlength="120" autocomplete="off" autocorrect="off" autocapitalize="sentences" />
+        <button class="imm-quick-add-btn" id="imm-quick-add-btn" aria-label="Add task">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+      </div>
+
+    </div><!-- /view-immediate -->
+
+    <!-- ======= PROGRESSION VIEW (kept for phase data, accessed via Dashboard panel) ======= -->
+    <div class="view" id="view-progression" style="display:none !important"></div>
+
+    <!-- ======= SETTINGS VIEW ======= -->
+    <div class="view" id="view-settings">
+      <div class="view-header">
+        <h2 class="view-title">Settings</h2>
+        <p class="view-sub">Customize your execution system.</p>
+      </div>
+
+      <div class="settings-grid">
+
+        <div class="settings-card">
+          <h3 class="settings-card-title">Identity</h3>
+          <div class="settings-field">
+            <label for="user-name">Your name</label>
+            <input type="text" id="user-name" placeholder="e.g. Thrishank" class="settings-input" />
+          </div>
+          <div class="settings-field">
+            <label for="user-goal">Core goal / identity statement</label>
+            <input type="text" id="user-goal" placeholder="e.g. I am becoming disciplined every day" class="settings-input" />
+          </div>
+          <button class="settings-save-btn" id="save-identity">Save Identity</button>
+        </div>
+
+        <div class="settings-card reminders-card">
+          <div class="reminders-card-header">
+            <h3 class="settings-card-title">Block Reminders</h3>
+            <p class="reminders-sub">Get notified when each block starts. Toggle on/off per block.</p>
+          </div>
+          <!-- Dynamically rendered from BLOCKS by settings.js -->
+          <div class="reminder-list" id="reminder-list"></div>
+          <button class="settings-save-btn" id="save-reminders">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Save Reminders
+          </button>
+        </div>
+
+        <div class="settings-card danger-zone">
+          <h3 class="settings-card-title">Data</h3>
+          <p class="settings-desc">Export your full data as JSON, or import it to restore progress.</p>
+          <div class="data-actions">
+            <button class="settings-export-btn" id="export-data">📤 Export JSON</button>
+            <label class="settings-import-btn" for="import-data-file" title="Import from JSON backup">
+              📥 Import JSON
+              <input type="file" id="import-data-file" accept=".json" style="display:none;" />
+            </label>
+            <button class="settings-danger-btn" id="reset-data">🗑 Reset All Data</button>
+          </div>
+        </div>
+
+        <!-- Change Password -->
+        <div class="settings-card">
+          <h3 class="settings-card-title">Change Password</h3>
+          <p class="settings-desc">Enter your current password, then choose a new one.</p>
+          <form class="settings-pwd-form" id="change-password-form" novalidate>
+            <div class="settings-pwd-field">
+              <label class="settings-label" for="settings-current-pwd">Current Password</label>
+              <input class="settings-input" id="settings-current-pwd" type="password"
+                     placeholder="Your current password" autocomplete="current-password" required />
+            </div>
+            <div class="settings-pwd-field">
+              <label class="settings-label" for="settings-new-pwd">New Password</label>
+              <input class="settings-input" id="settings-new-pwd" type="password"
+                     placeholder="New password (min. 6 chars)" autocomplete="new-password" required />
+            </div>
+            <div class="settings-pwd-field">
+              <label class="settings-label" for="settings-confirm-pwd">Confirm New Password</label>
+              <input class="settings-input" id="settings-confirm-pwd" type="password"
+                     placeholder="Repeat new password" autocomplete="new-password" required />
+            </div>
+            <button class="settings-save-btn" id="change-password-btn" type="submit">
+              Update Password
+            </button>
+          </form>
+        </div>
+
+        <!-- Account / Logout / Delete -->
+        <div class="settings-card">
+          <h3 class="settings-card-title">Account</h3>
+          <p class="settings-desc" id="settings-account-email">Signed in via Firebase.</p>
+          <div class="settings-account-actions">
+            <button class="settings-logout-btn" id="logout-btn">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              Sign Out
+            </button>
+            <button class="settings-delete-account-btn" id="delete-account-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6M9 6V4h6v2"/>
+              </svg>
+              Delete Account
+            </button>
+          </div>
+        </div>
+
+
+      </div>
+
+    </div><!-- /view-settings -->
+
+  </main>
+
+  <!-- Mobile bottom navigation (visible only on ≤640px) -->
+  <nav class="mobile-nav" role="navigation" aria-label="Mobile navigation">
+    <button class="mobile-nav-btn active" data-view="dashboard" id="mob-tab-dashboard" aria-label="Dashboard">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      <span>Dashboard</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="immediate" id="mob-tab-immediate" aria-label="Immediate">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      <span>Immediate</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="history" id="mob-tab-history" aria-label="History">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+      <span>History</span>
+    </button>
+    <button class="mobile-nav-btn" data-view="settings" id="mob-tab-settings" aria-label="Settings">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/>
+      </svg>
+      <span>Settings</span>
+    </button>
+  </nav>
+
+  <!-- Toast notification -->
+  <div class="toast" id="toast" aria-live="polite"></div>
+
+  <!-- PWA: Install prompt banner (hidden by default, shown by JS when installable) -->
+  <div id="pwa-install-banner" style="display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid rgba(124,58,237,0.4);border-radius:14px;padding:12px 20px;display:none;align-items:center;gap:14px;box-shadow:0 8px 32px rgba(0,0,0,0.5);backdrop-filter:blur(12px);max-width:calc(100vw - 32px);">
+    <img src="./icons/icon-192.png" alt="" width="36" height="36" style="border-radius:8px;flex-shrink:0;" />
+    <div style="flex:1;min-width:0;">
+      <div style="font-family:Inter,sans-serif;font-size:13px;font-weight:600;color:#f0f0ff;line-height:1.2;">Install EveryDay</div>
+      <div style="font-family:Inter,sans-serif;font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px;">Add to home screen for fast access</div>
+    </div>
+    <button id="pwa-install-btn" style="background:linear-gradient(135deg,#7c3aed,#06b6d4);border:none;border-radius:8px;padding:8px 16px;font-family:Inter,sans-serif;font-size:12px;font-weight:600;color:#fff;cursor:pointer;flex-shrink:0;">Install</button>
+    <button id="pwa-install-dismiss" aria-label="Dismiss" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:4px;flex-shrink:0;line-height:1;">×</button>
+  </div>
+
+
+  <!-- PWA: Service Worker registration + install prompt -->
+  <script>
+    // Register service worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(reg => console.log('[EveryDay SW] Registered, scope:', reg.scope))
+          .catch(err => console.warn('[EveryDay SW] Registration failed:', err));
+      });
+    }
+
+    // Capture the install prompt and show custom banner
+    let _deferredPrompt = null;
+    const installBanner = document.getElementById('pwa-install-banner');
+    const installBtn    = document.getElementById('pwa-install-btn');
+    const dismissBtn    = document.getElementById('pwa-install-dismiss');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      _deferredPrompt = e;
+      // Only show if not already dismissed this session
+      if (!sessionStorage.getItem('pwa-banner-dismissed')) {
+        installBanner.style.display = 'flex';
+      }
+    });
+
+    installBtn?.addEventListener('click', async () => {
+      if (!_deferredPrompt) return;
+      installBanner.style.display = 'none';
+      _deferredPrompt.prompt();
+      const { outcome } = await _deferredPrompt.userChoice;
+      console.log('[EveryDay PWA] Install outcome:', outcome);
+      _deferredPrompt = null;
+    });
+
+    dismissBtn?.addEventListener('click', () => {
+      installBanner.style.display = 'none';
+      sessionStorage.setItem('pwa-banner-dismissed', '1');
+    });
+
+    // Hide banner if app is already installed (standalone mode)
+    if (window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true) {
+      installBanner.style.display = 'none';
+    }
+
+    window.addEventListener('appinstalled', () => {
+      installBanner.style.display = 'none';
+      _deferredPrompt = null;
+      console.log('[EveryDay PWA] App installed successfully!');
+    });
+  </script>
+</body>
+</html>
