@@ -1,20 +1,18 @@
 /**
- * auth.js — Firebase Authentication + Custom Brevo Email Verification
- * =====================================================================
+ * auth.js — Firebase Authentication + Email Verification
+ * ========================================================
  *
  * VERIFICATION FLOW:
- *   1. signup()  → creates Firebase user → generates UUID token
- *                → writes token to Firestore → calls server /api/auth/send-verification
- *                → server sends branded email via Brevo SMTP
+ *   1. signup()  → creates Firebase user
+ *                → calls sendEmailVerification() — Firebase sends the link
  *
- *   2. User clicks link in email → app URL gets ?verify=TOKEN&uid=UID
+ *   2. User clicks Firebase verification link (no backend needed)
  *
- *   3. main.js._handleVerifyToken() → checks token against Firestore
- *                → if valid: sets Firestore emailVerified=true, removes token
+ *   3. "I've verified — Continue" button → auth.currentUser.reload()
+ *                → if user.emailVerified: write Firestore emailVerified=true → boot app
  *
- *   4. Auth gate in main.js checks getCached('emailVerified') — lets user in.
- *
- * Firebase's native user.emailVerified is also accepted (belt + suspenders).
+ *   Note: thrishankkuntimaddi.github.io must be in Firebase Console > Authentication
+ *         > Settings > Authorized domains for verification links to work.
  */
 
 import {
@@ -22,6 +20,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   signOut,
   updatePassword,
   reauthenticateWithCredential,
@@ -42,100 +41,43 @@ export const listenToAuth = (callback) => onAuthStateChanged(auth, callback);
 export const login = (email, password) =>
   signInWithEmailAndPassword(auth, email, password);
 
-// ── Signup with custom Brevo verification ────────────────────────────────────
+// ── Signup with Firebase email verification ───────────────────────────────────
 
 /**
  * signup — Create a new Firebase account, then send a verification email
- * via our Brevo SMTP server endpoint (instead of Firebase's built-in email).
- *
- * Steps:
- *   1. Create Firebase user
- *   2. Generate a UUID verification token
- *   3. Write token to Firestore (users/{uid}/data/profile) immediately
- *   4. POST to /api/auth/send-verification → server sends Brevo email
+ * using Firebase's built-in sendEmailVerification() — no backend required.
  */
 export const signup = async (email, password) => {
   // 1. Create Firebase user
   const cred = await createUserWithEmailAndPassword(auth, email, password);
-  const { uid } = cred.user;
 
-  // 2. Generate UUID token using Web Crypto API (no extra deps)
-  const token = crypto.randomUUID();
-  const tokenCreatedAt = new Date().toISOString();
-
-  // 3. Write token to Firestore BEFORE calling server
-  //    (main.js validation compares against this stored token)
+  // 2. Initialize the user's Firestore profile (emailVerified starts false)
   try {
     await setDoc(
-      doc(db, 'users', uid, 'data', 'profile'),
-      { emailVerified: false, verificationToken: token, tokenCreatedAt },
+      doc(db, 'users', cred.user.uid, 'data', 'profile'),
+      { emailVerified: false },
       { merge: true }
     );
   } catch (err) {
-    console.warn('[Auth] Could not write token to Firestore:', err.message);
-    // Continue anyway — email will be sent; token validation may fail gracefully
+    console.warn('[Auth] Could not init Firestore profile:', err.message);
   }
 
-  // 4. Ask server to send the Brevo verification email
-  await _sendVerificationViaServer(email, uid, token);
+  // 3. Send Firebase's built-in verification email (works on GitHub Pages)
+  await sendEmailVerification(cred.user);
+  console.log(`[Auth] ✉️  Firebase verification email sent to ${email}`);
 
   return cred;
 };
 
 /**
- * resendVerificationEmail — generate a new token, overwrite Firestore, resend.
- * Replaces the old Firebase sendEmailVerification-based resend.
+ * resendVerificationEmail — re-send Firebase's verification email.
  */
 export const resendVerificationEmail = async () => {
   const user = auth.currentUser;
   if (!user) throw new Error('No user signed in.');
-
-  const token = crypto.randomUUID();
-  const tokenCreatedAt = new Date().toISOString();
-
-  // Overwrite token in Firestore
-  try {
-    await setDoc(
-      doc(db, 'users', user.uid, 'data', 'profile'),
-      { verificationToken: token, tokenCreatedAt },
-      { merge: true }
-    );
-  } catch (err) {
-    console.warn('[Auth] Could not refresh token in Firestore:', err.message);
-  }
-
-  await _sendVerificationViaServer(user.email, user.uid, token);
+  await sendEmailVerification(user);
+  console.log(`[Auth] ✉️  Verification email resent to ${user.email}`);
 };
-
-// ── Internal helpers ──────────────────────────────────────────────────────────
-
-async function _sendVerificationViaServer(email, uid, token) {
-  try {
-    const res = await fetch('/api/auth/send-verification', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email, uid, token }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      throw new Error(data.error || `Server error ${res.status}`);
-    }
-
-    console.log(`[Auth] ✉️  Verification email dispatched via Brevo for ${email}`);
-  } catch (err) {
-    // In dev the Express server may not be running — log but don't block signup.
-    // In production the server is always up, so this will surface properly.
-    if (err.message.includes('Failed to fetch') || err.message.includes('ECONNREFUSED') || err.name === 'TypeError') {
-      console.warn(
-        '[Auth] ⚠️  Could not reach verification server — is `npm run dev:server` running?\n',
-        'Signup succeeded. Email was NOT sent. Start the server and resend manually.'
-      );
-      return; // allow signup to complete without blocking the user
-    }
-    throw err; // re-throw real server errors (4xx, 5xx)
-  }
-}
 
 // ── Standard auth actions ─────────────────────────────────────────────────────
 

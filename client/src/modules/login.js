@@ -9,6 +9,7 @@
 
 import { login, signup, logout, resendVerificationEmail } from '../lib/auth.js';
 import { auth } from '../lib/auth.js';
+import { patchUserData } from '../lib/db.js';
 
 let _overlay = null;
 let _currentMode = 'signin';
@@ -173,29 +174,40 @@ function _bindEvents() {
   });
 
   // "I've verified — Continue"
-  // The Brevo email link opens the app with ?verify=TOKEN&uid=UID in the URL.
-  // When the user clicks that link in a new tab, auth gate validates the token
-  // and marks emailVerified=true in Firestore.
-  // This button lets the user continue in the CURRENT tab by simply reloading.
+  // Reload the Firebase user to get the freshest emailVerified status,
+  // then only proceed if Firebase confirms the email was clicked.
   _overlay.querySelector('#auth-verified-btn')?.addEventListener('click', async () => {
     _setLoading(true);
     _clearError();
     try {
-      // Reload so the auth gate runs fresh — it will find emailVerified=true
-      // in Firestore if the user already clicked the email link in another tab.
-      window.location.reload();
+      const user = auth.currentUser;
+      if (!user) throw new Error('Session expired. Please sign in again.');
+
+      // Force-refresh Firebase user state from the server
+      await user.reload();
+
+      if (auth.currentUser?.emailVerified) {
+        // Stamp Firestore so the auth gate's getCached('emailVerified') also passes
+        try {
+          await patchUserData({ emailVerified: true, verificationToken: null, tokenCreatedAt: null });
+        } catch (_) { /* non-fatal — user.emailVerified is the ground truth */ }
+        window.location.reload();
+      } else {
+        _showError('Email not verified yet. Please click the link in your inbox (check spam too).');
+        _setLoading(false);
+      }
     } catch (err) {
-      _showError(_friendlyError(err.code));
+      _showError(err.message || 'Something went wrong. Please try again.');
       _setLoading(false);
     }
   });
 
-  // Resend verification email (via Brevo SMTP server)
+  // Resend verification email (Firebase built-in — no backend needed)
   _overlay.querySelector('#auth-resend-btn')?.addEventListener('click', async () => {
     _clearError();
     try {
-      await resendVerificationEmail(); // generates new token, writes to Firestore, sends via Brevo
-      _showError('✅ Verification email sent via Brevo! Check your inbox (and spam folder).');
+      await resendVerificationEmail();
+      _showError('✅ Verification email sent! Check your inbox (and spam folder).');
     } catch (err) {
       _showError('Failed to resend: ' + (err.message || 'Unknown error'));
     }
