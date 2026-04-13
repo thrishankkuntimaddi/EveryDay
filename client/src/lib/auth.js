@@ -26,6 +26,8 @@ import {
   reauthenticateWithCredential,
   EmailAuthProvider,
   deleteUser,
+  setPersistence,
+  browserLocalPersistence,
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { app } from './firebase.js';
@@ -33,6 +35,13 @@ import { db } from './firebase.js';
 
 /** Shared auth instance */
 export const auth = getAuth(app);
+
+// ── Ensure auth session survives browser restarts (IndexedDB persistence) ──────
+// This fixes the "repeated login" bug on GitHub Pages where the auth token was
+// not being restored across page reloads because persistence was not set explicitly.
+setPersistence(auth, browserLocalPersistence).catch(err =>
+  console.warn('[Auth] Could not set persistence:', err.message)
+);
 
 /** Subscribe to auth state changes. */
 export const listenToAuth = (callback) => onAuthStateChanged(auth, callback);

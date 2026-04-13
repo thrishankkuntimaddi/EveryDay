@@ -218,6 +218,26 @@ function renderCalendarHeatmap() {
   if (subEl)    subEl.textContent    = ' days active in the past year';
   if (streakEl) streakEl.textContent = String(STATE.streak?.count ?? 0);
   if (rangeEl)  rangeEl.textContent  = '';
+
+  // ── Auto-scroll heatmap so today's cell is visible ───────────────────────────
+  // The heatmap is wider than the viewport (52 weeks × 16px ≈ 832px).
+  // By default it shows the far-left (oldest weeks). We scroll #gh-scrollable
+  // so the current week is in view with some trailing context on the left.
+  setTimeout(() => {
+    const todayCell = container.querySelector('.hm-today');
+    const scrollEl  = document.getElementById('gh-scrollable');
+    if (!todayCell || !scrollEl) return;
+
+    // Position today's column roughly 80% from the left so you can see
+    // several weeks of history to the left and today near the right side.
+    const cellRect   = todayCell.getBoundingClientRect();
+    const scrollRect = scrollEl.getBoundingClientRect();
+    const scrollLeft = scrollEl.scrollLeft
+      + (cellRect.left - scrollRect.left)
+      - scrollRect.width * 0.8;
+
+    scrollEl.scrollTo({ left: Math.max(0, scrollLeft), behavior: 'instant' });
+  }, 0);
 }
 
 // ─── Entry Cards ──────────────────────────────────────────────────────────────

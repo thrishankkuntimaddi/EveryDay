@@ -34,13 +34,20 @@ const EMOJI_OPTIONS = [
 
 export function loadCustomPlan() {
   try {
-    // ── Carry-forward: after midnight, activate tomorrow's structured plan ─────
-    // If the user planned tomorrow via the EOD editor and it's now 00:00–03:59,
-    // promote planTomorrow.blocks into today's BLOCKS and clear the field.
-    const h = new Date().getHours();
-    if (h < 4) {
-      const planTomorrow = getCached('planTomorrow', null);
-      if (planTomorrow && Array.isArray(planTomorrow.blocks) && planTomorrow.blocks.length > 0) {
+    // ── Carry-forward: promote "Plan for Tomorrow" into today's live plan ────
+    // Fires whenever planTomorrow was saved on a PRIOR calendar day (not just
+    // the 00:00–03:59 window). This means even if the user open the app at 9 AM
+    // on a new day, yesterday's "plan for tomorrow" still becomes today's plan.
+    const planTomorrow = getCached('planTomorrow', null);
+    if (planTomorrow && Array.isArray(planTomorrow.blocks) && planTomorrow.blocks.length > 0) {
+      // Check if the plan was saved on a previous calendar day
+      const todayStr   = _todayDateString();
+      const savedDay   = planTomorrow.savedAt
+        ? new Date(planTomorrow.savedAt).toISOString().split('T')[0]
+        : null;
+      const isFromPriorDay = savedDay && savedDay < todayStr;
+
+      if (isFromPriorDay) {
         BLOCKS.length = 0;
         // Strip focusNote from each block before using it as a live block
         planTomorrow.blocks.forEach(({ focusNote: _fn, ...block }) => BLOCKS.push(block));
@@ -64,6 +71,12 @@ export function loadCustomPlan() {
   } catch {
     return false;
   }
+}
+
+/** Returns today's date as "YYYY-MM-DD" (local time). */
+function _todayDateString() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function savePlanToStorage() {

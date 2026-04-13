@@ -377,8 +377,11 @@ function _handleRemoteUpdate(data) {
   }
   _lastKnownUpdate = data.lastUpdated || _lastKnownUpdate;
 
-  // ── Sync ALL Firestore fields into STATE ─────────────────────────────────────
-  STATE.tasks        = data.tasks        || {};
+  // ── Sync ALL Firestore fields into STATE ────────────────────────────────────────────
+  // data.tasks is the full { "YYYY-MM-DD": { taskId: bool } } map.
+  // STATE.tasks must only hold today's task map { taskId: bool }.
+  const _today = todayKey();
+  STATE.tasks        = (data.tasks && data.tasks[_today]) ? data.tasks[_today] : (STATE.tasks || {});
   STATE.streak       = data.streak       || STATE.streak;
   STATE.history      = data.history      || [];
   STATE.settings     = data.settings     || STATE.settings;
