@@ -170,6 +170,38 @@ function attachGlobalListeners() {
   // Re-init drag sort whenever blocks are re-rendered
   window.addEventListener('everyday:blocksRendered', () => initDragSort());
 
+  // Hard Refresh — settings.js fetches fresh Firestore data + updates STATE,
+  // then fires this event so main.js (which owns all render functions) can re-render.
+  window.addEventListener('everyday:hardRefresh', () => {
+    // Reload the custom block plan from the fresh cache
+    loadCustomPlan();
+
+    // Always update the persistent header elements
+    updateHeaderStreak();
+    updatePhaseBadge();
+
+    // Re-render whichever view is currently active
+    switch (STATE.currentView) {
+      case 'dashboard':
+        renderBlocks();
+        updateMasterProgress();
+        renderEOD();
+        renderTomorrowPlan();
+        break;
+      case 'immediate':
+        renderImmediate();
+        break;
+      case 'history':
+        renderHistory();
+        break;
+      case 'settings':
+        renderSettings();
+        break;
+    }
+
+    console.log('[EveryDay] 🔄 Hard Refresh complete — UI re-rendered from fresh Firestore data.');
+  });
+
   // Phase panel toggle (click #metric-phase card)
   const phaseMetric = document.getElementById('metric-phase');
   const phasePanel  = document.getElementById('phase-panel');

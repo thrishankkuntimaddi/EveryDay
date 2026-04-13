@@ -436,6 +436,13 @@
               📥 Import JSON
               <input type="file" id="import-data-file" accept=".json" style="display:none;" />
             </label>
+            <button class="settings-refresh-btn" id="hard-refresh-btn" title="Force re-fetch all data from Firestore and re-render the UI">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="refresh-icon" aria-hidden="true">
+                <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+                <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+              </svg>
+              Hard Refresh
+            </button>
             <button class="settings-danger-btn" id="reset-data">🗑 Reset All Data</button>
           </div>
         </div>

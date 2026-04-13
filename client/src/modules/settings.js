@@ -15,7 +15,7 @@ import { showToast } from '../utils/toast.js';
 import { scheduleReminders } from './notifications.js';
 
 import { auth, logout, changePassword, deleteCurrentUser } from '../lib/auth.js';
-import { patchUserData } from '../lib/db.js';
+import { patchUserData, loadUserData, getCached }          from '../lib/db.js';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -220,6 +220,65 @@ export function attachSettingsListeners() {
     }
     // Reset input so user can re-upload
     e.target.value = '';
+  });
+
+  // Hard Refresh — re-fetch Firestore, re-hydrate STATE, re-render
+  document.getElementById('hard-refresh-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('hard-refresh-btn');
+    if (!btn || btn.disabled) return;
+
+    const uid = auth.currentUser?.uid;
+    if (!uid) { showToast('⚠️ Not signed in — cannot refresh.', 'error'); return; }
+
+    // Enter loading state
+    btn.disabled = true;
+    btn.classList.add('is-spinning');
+    btn.innerHTML = `
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+           class="refresh-icon" aria-hidden="true">
+        <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+      </svg>
+      Refreshing…`;
+
+    try {
+      // 1. Re-fetch the full Firestore document (updates the in-memory cache in db.js)
+      await loadUserData(uid);
+
+      // 2. Re-hydrate STATE from the fresh cache via the api layer
+      const [tasksData, historyData, settingsData, phaseData] = await Promise.all([
+        api.tasks.getToday(),
+        api.history.getAll(),
+        api.settings.get(),
+        api.settings.getPhase(),
+      ]);
+
+      STATE.tasks    = tasksData.tasks || {};
+      STATE.history  = historyData     || [];
+      STATE.settings = settingsData    || { name: '', goal: '', reminders: {} };
+      STATE.phase    = phaseData.phase  || 'stabilization';
+      STATE.streak   = getCached('streak', STATE.streak);
+
+      // 3. Ask main.js to re-render everything — it owns all the render functions
+      window.dispatchEvent(new CustomEvent('everyday:hardRefresh'));
+
+      showToast('🔄 Hard refresh complete — data is fresh!', 'success');
+    } catch (err) {
+      console.error('[EveryDay] Hard refresh failed:', err);
+      showToast('⚠️ Refresh failed: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+      btn.classList.remove('is-spinning');
+      btn.innerHTML = `
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+             class="refresh-icon" aria-hidden="true">
+          <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/>
+        </svg>
+        Hard Refresh`;
+    }
   });
 
   // Reset All Data — Firestore only
